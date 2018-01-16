@@ -2,13 +2,13 @@
 #   Script that listens to new GitHub pull requests
 #   and assigns them to the REVIEW column on the "Pipeline for QA" project
 
+projectBoardName = "Pipeline for QA"
+reviewColumnName = "REVIEW"
+notifyRoomName = "core"
+
 module.exports = (robot) ->
 
-  projectBoardName = "Pipeline for QA"
-  reviewColumnName = "REVIEW"
-  notifyRoomName = "core"
-
-  GitHubApi = require("github")
+  context = require("./github-context.coffee")
 
   robot.on "github-repo-event", (repo_event) ->
     githubPayload = repo_event.payload
@@ -16,21 +16,15 @@ module.exports = (robot) ->
     switch(repo_event.eventType)
       when "pull_request"
         # Make sure we don't listen to our own messages
-        return if equalsRobotName(robot, githubPayload.pull_request.user.login)
-
-        token = process.env.HUBOT_GITHUB_TOKEN
-        return console.error "No Github token provided to Hubot" unless token
+        return if context.equalsRobotName(robot, githubPayload.pull_request.user.login)
+        return console.error "No Github token provided to Hubot" unless process.env.HUBOT_GITHUB_TOKEN
 
         action = githubPayload.action
         if action == "opened"
           # A new PR was opened
-          github = new GitHubApi { version: "3.0.0" }
-          github.authenticate({
-            type: "token",
-            token: token
-          })
-
-          assignPullRequestToReview github, githubPayload, robot
+          context.initialize()
+  
+          assignPullRequestToReview context.github, githubPayload, robot
 
 assignPullRequestToReview = (github, githubPayload, robot) ->
   ownerName = githubPayload.repository.owner.login
@@ -102,21 +96,3 @@ findColumn = (columns, name) ->
   for idx, column of columns
     return column if column.name == name
   return null
-
-equalsRobotName = (robot, str) ->
-  return getRegexForRobotName(robot).test(str)
-
-RegExp cachedRobotNameRegex = null
-getRegexForRobotName = (robot) ->
-  # This comes straight out of Hubot's Robot.coffee
-  # - they didn't get a nice way of extracting that method though
-  if !cachedRobotNameRegex
-    name = robot.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
-
-    if robot.alias
-      alias = robot.alias.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
-      namePattern = "^\\s*[@]?(?:#{alias}|#{name})"
-    else
-      namePattern = "^\\s*[@]?#{name}"
-    cachedRobotNameRegex = new RegExp(namePattern, 'i')
-  return cachedRobotNameRegex
