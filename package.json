@@ -5,8 +5,12 @@
   "author": "Pedro Pombeiro <pombeirp@users.noreply.github.com>",
   "description": "A simple helpful robot for your Company",
   "dependencies": {
+    "coffee-script": "^1.12.7",
+    "github": "^13.1.0",
     "hubot": "^2.19.0",
+    "hubot-commit-streak": "^1.0.7",
     "hubot-diagnostics": "0.0.2",
+    "hubot-github-webhook-listener": "^0.9.1",
     "hubot-google-images": "^0.2.7",
     "hubot-google-translate": "^0.2.1",
     "hubot-help": "^0.2.2",
