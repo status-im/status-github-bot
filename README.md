@@ -12,6 +12,26 @@ available, etc!
 [hubot]: http://hubot.github.com
 [generator-hubot]: https://github.com/github/generator-hubot
 
+## Creating the bot GitHub App
+
+This bot is meant to be packaged as a GitHub App. There are two steps to it: creating the app, and installing the app. Creating a GitHub App only needs to be done once and the app can be made public to be reused for any number of repositories and organizations.
+
+1. Create the GitHub App:
+    1. In GitHub, go to `Settings/Developer settings/GitHub Apps` and click on `New GitHub App`
+    1. Enter the bot name in `GitHub App name`, e.g. `Status GitHub Bot`
+    1. In `Homepage URL`, enter the root endpoint of the service, e.g. https://5e63b0ab.ngrok.io/
+    1. In `Webhook URL`, enter the `/hubot/github-repo-listener` endpoint of the service, e.g. https://5e63b0ab.ngrok.io/hubot/github-repo-listener
+    1. ~~In `Webhook secret (optional)`, enter a string of characters that matches the value in the config.json file deployed with the service.~~
+    1. The app needs `Read-only` permission to `Pull requests`, `Read & write` permission to `Repository projects`.
+    1. The app subscribes to `Pull request` events.
+    1. Generate a private key, and save it in the root folder of the service, with the following file name: `status-github-bot.pem`
+1. Installing the bot service:
+    1. Deploy the bot to the cloud.
+    1. Make sure the `status-github-bot.pem` file is present in the same directory as this README.md file.
+    1. Install redis (see below in the Persistance section) so that the bot can recover data after being restarted.
+1. Install the GitHub App in an account:
+    1. Select the repositories where the bot should work (e.g. `status-react`)
+
 ### Running statusbot Locally
 
 You can test your hubot by running the following, however some plugins will not
