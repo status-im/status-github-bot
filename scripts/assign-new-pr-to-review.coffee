@@ -1,6 +1,19 @@
 # Description:
 #   Script that listens to new GitHub pull requests
 #   and assigns them to the REVIEW column on the "Pipeline for QA" project
+#
+# Dependencies:
+#   github: "^13.1.0"
+#   hubot-github-webhook-listener: "^0.9.1"
+#   hubot-slack: "^4.4.0"
+#
+# Notes:
+#   The hard-coded names for the project board and review column are just below.
+#   These could be read from a config file (e.g. YAML)
+#   TODO: Rewrite this file with ES6 to benefit from async/await
+#
+# Author:
+#   PombeirP
 
 projectBoardName = "Pipeline for QA"
 reviewColumnName = "REVIEW"
@@ -8,32 +21,32 @@ notifyRoomName = "core"
 
 module.exports = (robot) ->
 
-  context = require("./github-context.coffee")
+  context = require('./github-context.coffee')
 
   robot.on "github-repo-event", (repo_event) ->
     githubPayload = repo_event.payload
 
     switch(repo_event.eventType)
       when "pull_request"
+        context.initialize(robot, robot.brain.get "github-app_id")
         # Make sure we don't listen to our own messages
         return if context.equalsRobotName(robot, githubPayload.pull_request.user.login)
-        return console.error "No Github token provided to Hubot" unless process.env.HUBOT_GITHUB_TOKEN
 
         action = githubPayload.action
         if action == "opened"
           # A new PR was opened
-          context.initialize()
-  
-          assignPullRequestToReview context.github, githubPayload, robot
+          assignPullRequestToReview context.github(), githubPayload, robot
 
 assignPullRequestToReview = (github, githubPayload, robot) ->
   ownerName = githubPayload.repository.owner.login
   repoName = githubPayload.repository.name
   prNumber = githubPayload.pull_request.number
-  robot.logger.info "assignPullRequestToReview - Handling Pull Request ##{prNumber} on repo #{ownerName}/#{repoName}"
+  robot.logger.info "assignPullRequestToReview - " +
+    "Handling Pull Request ##{prNumber} on repo #{ownerName}/#{repoName}"
 
   # Fetch repo projects
-  # TODO: The repo project and project column info should be cached in order to improve performance and reduce roundtrips
+  # TODO: The repo project and project column info should be cached
+  # in order to improve performance and reduce roundtrips
   github.projects.getRepoProjects {
     owner: ownerName,
     repo: repoName,
@@ -73,7 +86,7 @@ assignPullRequestToReview = (github, githubPayload, robot) ->
         column_id: column.id,
         content_type: 'PullRequest',
         content_id: githubPayload.pull_request.id
-        }, (err, ghcard) ->
+      }, (err, ghcard) ->
         if err
           robot.logger.error "Couldn't create project card for the PR: #{err}",
             column.id, githubPayload.pull_request.id
@@ -85,7 +98,6 @@ assignPullRequestToReview = (github, githubPayload, robot) ->
         robot.messageRoom notifyRoomName,
           "Moved PR #{githubPayload.pull_request.number} to " +
           "#{reviewColumnName} in #{projectBoardName} project"
-
 
 findProject = (projects, name) ->
   for idx, project of projects
