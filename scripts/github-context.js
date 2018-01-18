@@ -15,13 +15,18 @@ const githubAPI = new GitHubApi({
   timeout: 15000,
   requestMedia: 'application/vnd.github.v3+json'
 });
+let githubConfig = null;
 
 module.exports = {
 
   github() { return githubAPI; },
 
+  config() { return githubConfig; },
+
   initialize(robot, integrationID) {
     if (initialized) { return; }
+
+    githubConfig = loadConfig(robot, './github.yaml')
 
     const token = robot.brain.get('github-token');
     if (token) {
@@ -89,3 +94,17 @@ function getRegexForRobotName(robot) {
   }
   return cachedRobotNameRegex;
 };
+
+function loadConfig(robot, fileName) {
+  // Get document, or throw exception on error
+  try {
+    const yaml = require('js-yaml');
+    const fs   = require('fs');
+
+    return yaml.safeLoad(fs.readFileSync(fileName, 'utf8'));
+  } catch (e) {
+    robot.logger.error(e);
+  }
+
+  return null;
+}

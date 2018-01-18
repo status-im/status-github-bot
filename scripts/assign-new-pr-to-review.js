@@ -14,10 +14,6 @@
 // Author:
 //   PombeirP
 
-const projectBoardName = "Pipeline for QA";
-const reviewColumnName = "REVIEW";
-const notifyRoomName = "core";
-
 module.exports = function(robot) {
 
   const context = require('./github-context.js');
@@ -33,14 +29,16 @@ module.exports = function(robot) {
         var { action } = githubPayload;
         if (action === "opened") {
           // A new PR was opened
-          return assignPullRequestToReview(context.github(), githubPayload, robot);
+          return assignPullRequestToReview(context, githubPayload, robot);
         }
         break;
     }
   });
 };
 
-async function assignPullRequestToReview(github, githubPayload, robot) {
+async function assignPullRequestToReview(context, githubPayload, robot) {
+  const github = context.github();
+  const githubConfig = context.config();
   const ownerName = githubPayload.repository.owner.login;
   const repoName = githubPayload.repository.name;
   const prNumber = githubPayload.pull_request.number;
@@ -58,6 +56,7 @@ async function assignPullRequestToReview(github, githubPayload, robot) {
     });
 
     // Find "Pipeline for QA" project
+    const projectBoardName = githubConfig['pull-requests']['project-board'].name;
     const project = ghprojects.data.find(function(p) { return p.name === projectBoardName });
     if (!project) {
       robot.logger.warn(`Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`);
@@ -70,6 +69,7 @@ async function assignPullRequestToReview(github, githubPayload, robot) {
     try {
       ghcolumns = await github.projects.getProjectColumns({ project_id: project.id });  
 
+      const reviewColumnName = githubConfig['pull-requests']['project-board']['review-column-name'];
       const column = ghcolumns.data.find(function(c) { return c.name === reviewColumnName });
       if (!column) {
         robot.logger.warn(`Couldn't find ${projectBoardName} column in project ${project.name}`);
@@ -89,8 +89,7 @@ async function assignPullRequestToReview(github, githubPayload, robot) {
         robot.logger.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id);
 
         // Send message to Slack
-        robot.messageRoom(notifyRoomName, `Moved PR ${githubPayload.pull_request.number} to ${reviewColumnName} in ${projectBoardName} project`
-        );
+        robot.messageRoom(githubConfig.slack.notification.room, `Moved PR ${githubPayload.pull_request.number} to ${reviewColumnName} in ${projectBoardName} project`);
       } catch (err) {
         robot.logger.error(`Couldn't create project card for the PR: ${err}`, column.id, githubPayload.pull_request.id);
       }

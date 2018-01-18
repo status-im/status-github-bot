@@ -24,16 +24,17 @@ module.exports = function(robot) {
         var { action } = githubPayload;
         if (action === "opened") {
           // A new PR was opened
-          return greetNewContributor(context.github(), githubPayload, robot);
+          return greetNewContributor(context, githubPayload, robot);
         }
         break;
     }
   });
 };
 
-async function greetNewContributor(github, githubPayload, robot) {
+async function greetNewContributor(context, githubPayload, robot) {
   // TODO: Read the welcome message from a (per-repo?) file (e.g. status-react.welcome-msg.md)
-  const welcomeMessage = "Thanks for making your first PR here!";
+  const github = context.github();
+  const welcomeMessage = context.config()['pull-requests']['welcome-bot'].message;
   const ownerName = githubPayload.repository.owner.login;
   const repoName = githubPayload.repository.name;
   const prNumber = githubPayload.pull_request.number;

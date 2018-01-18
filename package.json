@@ -22,6 +22,7 @@
     "hubot-scripts": "^2.17.2",
     "hubot-shipit": "^0.2.1",
     "hubot-slack": "^4.4.0",
+    "js-yaml": "^3.10.0",
     "jwt-simple": "^0.5.1"
   },
   "engines": {

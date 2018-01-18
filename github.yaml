@@ -1,0 +1,11 @@
+pull-requests:
+  project-board:
+    name: 'Pipeline for QA'
+    review-column-name: 'REVIEW'
+
+  welcome-bot:
+    message: 'Thanks for making your first PR here!'
+
+slack:
+  notification:
+    room: 'core'
