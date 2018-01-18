@@ -19,7 +19,7 @@ let githubConfig = null;
 
 module.exports = {
 
-  github() { return githubAPI; },
+  api() { return githubAPI; },
 
   config() { return githubConfig; },
 

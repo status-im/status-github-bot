@@ -11,7 +11,7 @@
 
 module.exports = function(robot) {
 
-  const context = require('./github-context.js');
+  const gitHubContext = require('./github-context.js');
 
   return robot.on("github-repo-event", function(repo_event) {
     const githubPayload = repo_event.payload;
@@ -19,22 +19,22 @@ module.exports = function(robot) {
     switch(repo_event.eventType) {
       case "pull_request":
         // Make sure we don't listen to our own messages
-        if (context.equalsRobotName(robot, githubPayload.pull_request.user.login)) { return; }
+        if (gitHubContext.equalsRobotName(robot, githubPayload.pull_request.user.login)) { return; }
 
         var { action } = githubPayload;
         if (action === "opened") {
           // A new PR was opened
-          return greetNewContributor(context, githubPayload, robot);
+          return greetNewContributor(gitHubContext, githubPayload, robot);
         }
         break;
     }
   });
 };
 
-async function greetNewContributor(context, githubPayload, robot) {
+async function greetNewContributor(gitHubContext, githubPayload, robot) {
   // TODO: Read the welcome message from a (per-repo?) file (e.g. status-react.welcome-msg.md)
-  const github = context.github();
-  const welcomeMessage = context.config()['pull-requests']['welcome-bot'].message;
+  const github = gitHubContext.api();
+  const welcomeMessage = gitHubContext.config()['pull-requests']['welcome-bot'].message;
   const ownerName = githubPayload.repository.owner.login;
   const repoName = githubPayload.repository.name;
   const prNumber = githubPayload.pull_request.number;

@@ -16,7 +16,7 @@
 
 module.exports = function(robot) {
 
-  const context = require('./github-context.js');
+  const gitHubContext = require('./github-context.js');
 
   return robot.on("github-repo-event", function(repo_event) {
     const githubPayload = repo_event.payload;
@@ -24,21 +24,21 @@ module.exports = function(robot) {
     switch(repo_event.eventType) {
       case "pull_request":
         // Make sure we don't listen to our own messages
-        if (context.equalsRobotName(robot, githubPayload.pull_request.user.login)) { return; }
+        if (gitHubContext.equalsRobotName(robot, githubPayload.pull_request.user.login)) { return; }
 
         var { action } = githubPayload;
         if (action === "opened") {
           // A new PR was opened
-          return assignPullRequestToReview(context, githubPayload, robot);
+          return assignPullRequestToReview(gitHubContext, githubPayload, robot);
         }
         break;
     }
   });
 };
 
-async function assignPullRequestToReview(context, githubPayload, robot) {
-  const github = context.github();
-  const githubConfig = context.config();
+async function assignPullRequestToReview(gitHubContext, githubPayload, robot) {
+  const github = gitHubContext.api();
+  const githubConfig = gitHubContext.config();
   const ownerName = githubPayload.repository.owner.login;
   const repoName = githubPayload.repository.name;
   const prNumber = githubPayload.pull_request.number;

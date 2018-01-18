@@ -10,7 +10,7 @@
 
 module.exports = function(robot) {
 
-  const context = require('./github-context.js');
+  const gitHubContext = require('./github-context.js');
 
   return robot.on("github-repo-event", async function(repo_event) {
     const githubPayload = repo_event.payload;
@@ -20,7 +20,7 @@ module.exports = function(robot) {
     switch(repo_event.eventType) {
       case "integration_installation":
         // Make sure we don't listen to our own messages
-        if (context.equalsRobotName(robot, githubPayload.sender.login)) { return; }
+        if (gitHubContext.equalsRobotName(robot, githubPayload.sender.login)) { return; }
 
         var { action } = githubPayload;
         switch (action) {
@@ -32,7 +32,7 @@ module.exports = function(robot) {
             robot.brain.set('github-app_id', githubPayload.installation.app_id);
             robot.brain.set('github-app_repositories', githubPayload.repositories.map((x) => x.full_name).join());
 
-            context.initialize(robot, githubPayload.installation.app_id);
+            gitHubContext.initialize(robot, githubPayload.installation.app_id);
 
             var perms = githubPayload.installation.permissions;
             if (perms.repository_projects !== 'write') { robot.logger.error(formatPermMessage('repository_projects', 'write')); }
@@ -44,7 +44,7 @@ module.exports = function(robot) {
               robot.logger.error("Please enable 'pull_request' events in the app configuration on github.com");
             }
 
-            await createAccessToken(robot, context.github(), githubPayload.installation.id);
+            await createAccessToken(robot, gitHubContext.api(), githubPayload.installation.id);
             break;
           case "deleted":
             // App was uninstalled from an organization
