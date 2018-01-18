@@ -18,7 +18,6 @@ module.exports = function(robot) {
 
     switch(repo_event.eventType) {
       case "pull_request":
-        context.initialize(robot, robot.brain.get("github-app_id"));
         // Make sure we don't listen to our own messages
         if (context.equalsRobotName(robot, githubPayload.pull_request.user.login)) { return; }
 
