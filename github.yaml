@@ -1,4 +1,4 @@
-pull-requests:
+new-pull-requests:
   project-board:
     name: 'Pipeline for QA'
     review-column-name: 'REVIEW'
@@ -8,4 +8,4 @@ pull-requests:
 
 slack:
   notification:
-    room: 'core'
+    room: 'status-hubot'

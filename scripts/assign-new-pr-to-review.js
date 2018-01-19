@@ -56,7 +56,7 @@ async function assignPullRequestToReview(gitHubContext, githubPayload, robot) {
     });
 
     // Find "Pipeline for QA" project
-    const projectBoardName = githubConfig['pull-requests']['project-board'].name;
+    const projectBoardName = githubConfig['new-pull-requests']['project-board'].name;
     const project = ghprojects.data.find(function(p) { return p.name === projectBoardName });
     if (!project) {
       robot.logger.warn(`Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`);
@@ -69,7 +69,7 @@ async function assignPullRequestToReview(gitHubContext, githubPayload, robot) {
     try {
       ghcolumns = await github.projects.getProjectColumns({ project_id: project.id });  
 
-      const reviewColumnName = githubConfig['pull-requests']['project-board']['review-column-name'];
+      const reviewColumnName = githubConfig['new-pull-requests']['project-board']['review-column-name'];
       const column = ghcolumns.data.find(function(c) { return c.name === reviewColumnName });
       if (!column) {
         robot.logger.warn(`Couldn't find ${projectBoardName} column in project ${project.name}`);

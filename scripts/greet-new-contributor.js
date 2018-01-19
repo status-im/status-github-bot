@@ -34,7 +34,7 @@ module.exports = function(robot) {
 async function greetNewContributor(gitHubContext, githubPayload, robot) {
   // TODO: Read the welcome message from a (per-repo?) file (e.g. status-react.welcome-msg.md)
   const github = gitHubContext.api();
-  const welcomeMessage = gitHubContext.config()['pull-requests']['welcome-bot'].message;
+  const welcomeMessage = gitHubContext.config()['new-pull-requests']['welcome-bot'].message;
   const ownerName = githubPayload.repository.owner.login;
   const repoName = githubPayload.repository.name;
   const prNumber = githubPayload.pull_request.number;
