@@ -6,6 +6,11 @@ new-pull-requests:
   welcome-bot:
     message: 'Thanks for making your first PR here!'
 
+bounty-awaiting-approval:
+  project-board:
+    name: 'Status SOB Swarm'
+    review-column-name: 'bounty-awaiting-approval'
+
 slack:
   notification:
     room: 'status-hubot'
