@@ -26,6 +26,6 @@
     "jwt-simple": "^0.5.1"
   },
   "engines": {
-    "node": "0.10.x"
+    "node": "9.x.x"
   }
 }
