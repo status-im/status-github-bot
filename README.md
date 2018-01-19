@@ -12,6 +12,17 @@ available, etc!
 [hubot]: http://hubot.github.com
 [generator-hubot]: https://github.com/github/generator-hubot
 
+## What does the bot do?
+
+Right now the bot has two sets of capabilities:
+
+- Answering questions on Slack, such as `commit streak`. You can find all about them by going to the @hubot app in Slack and typing `help`.
+
+- Doing background stuff in GitHub:
+  - Assign new PRs to the Pipeline for QA project board (REVIEW column).
+  - Welcome users who post their first PR in a project.
+  - New functionality will be added in the future (wishlist is being tracked [here](https://docs.google.com/document/d/19NZEJ453av-owAEBXcIPjavbGKMBFlfVcwsuQ_ORzR4/))
+
 ## Creating the bot GitHub App
 
 This bot is meant to be packaged as a GitHub App. There are two steps to it: creating the app, and installing the app. Creating a GitHub App only needs to be done once and the app can be made public to be reused for any number of repositories and organizations.
