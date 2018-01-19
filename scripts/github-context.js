@@ -37,19 +37,10 @@ module.exports = {
       return;
     }
 
-    const pemFilePath = './status-github-bot.pem';
-
     const jwtLib = require('jwt-simple');
 
     // Private key contents
-    let privateKey = '';
-    try {
-      const fs = require('fs');
-      privateKey = fs.readFileSync(pemFilePath);
-    } catch (err) {
-      robot.logger.error(`Couldn't read ${pemFilePath} file contents: ${err}`);
-      return;
-    }
+    let privateKey = process.env.GITHUB_PEM;
 
     const now = Math.round(Date.now() / 1000);
     // Generate the JWT
