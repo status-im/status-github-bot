@@ -17,73 +17,74 @@ const githubAPI = new GitHubApi({
 });
 let githubConfig = null;
 
-module.exports = {
+module.exports = function() {
+  return {
+    api() { return githubAPI; },
 
-  api() { return githubAPI; },
+    config() { return githubConfig; },
 
-  config() { return githubConfig; },
+    initialize(robot, integrationID) {
+      if (initialized) { return; }
 
-  initialize(robot, integrationID) {
-    if (initialized) { return; }
+      githubConfig = loadConfig(robot, './github.yaml')
 
-    githubConfig = loadConfig(robot, './github.yaml')
+      const token = robot.brain.get('github-token');
+      if (token) {
+        initialized = true;
+        process.env.HUBOT_GITHUB_TOKEN = token;
+        robot.logger.debug("Reused cached GitHub token");
+        githubAPI.authenticate({ type: 'token', token });
+        return;
+      }
 
-    const token = robot.brain.get('github-token');
-    if (token) {
+      const jwtLib = require('jwt-simple');
+
+      // Private key contents
+      let privateKey = process.env.GITHUB_PEM;
+
+      const now = Math.round(Date.now() / 1000);
+      // Generate the JWT
+      const payload = {
+        // issued at time
+        iat: now,
+        // JWT expiration time (10 minute maximum)
+        exp: now + (1 * 60),
+        // GitHub App's identifier
+        iss: integrationID
+      };
+
+      jwt = jwtLib.encode(payload, privateKey, 'RS256');
+      githubAPI.authenticate({
+        type: 'integration',
+        token: jwt
+      });
+      robot.logger.debug("Configured integration authentication with JWT", jwt);
+
       initialized = true;
-      process.env.HUBOT_GITHUB_TOKEN = token;
-      robot.logger.debug("Reused cached GitHub token");
-      githubAPI.authenticate({ type: 'token', token });
-      return;
+    },
+
+    equalsRobotName(robot, str) {
+      return getRegexForRobotName(robot).test(str);
     }
+  };
 
-    const jwtLib = require('jwt-simple');
+  function getRegexForRobotName(robot) {
+    // This comes straight out of Hubot's Robot.coffee
+    // - they didn't get a nice way of extracting that method though
+    if (!cachedRobotNameRegex) {
+      let namePattern;
+      const name = robot.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 
-    // Private key contents
-    let privateKey = process.env.GITHUB_PEM;
-
-    const now = Math.round(Date.now() / 1000);
-    // Generate the JWT
-    const payload = {
-      // issued at time
-      iat: now,
-      // JWT expiration time (10 minute maximum)
-      exp: now + (1 * 60),
-      // GitHub App's identifier
-      iss: integrationID
-    };
-
-    jwt = jwtLib.encode(payload, privateKey, 'RS256');
-    githubAPI.authenticate({
-      type: 'integration',
-      token: jwt
-    });
-    robot.logger.debug("Configured integration authentication with JWT", jwt);
-
-    initialized = true;
-  },
-
-  equalsRobotName(robot, str) {
-    return getRegexForRobotName(robot).test(str);
-  }
-};
-
-function getRegexForRobotName(robot) {
-  // This comes straight out of Hubot's Robot.coffee
-  // - they didn't get a nice way of extracting that method though
-  if (!cachedRobotNameRegex) {
-    let namePattern;
-    const name = robot.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-
-    if (robot.alias) {
-      const alias = robot.alias.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-      namePattern = `^\\s*[@]?(?:${alias}|${name})`;
-    } else {
-      namePattern = `^\\s*[@]?${name}`;
+      if (robot.alias) {
+        const alias = robot.alias.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+        namePattern = `^\\s*[@]?(?:${alias}|${name})`;
+      } else {
+        namePattern = `^\\s*[@]?${name}`;
+      }
+      cachedRobotNameRegex = new RegExp(namePattern, 'i');
     }
-    cachedRobotNameRegex = new RegExp(namePattern, 'i');
+    return cachedRobotNameRegex;
   }
-  return cachedRobotNameRegex;
 };
 
 function loadConfig(robot, fileName) {

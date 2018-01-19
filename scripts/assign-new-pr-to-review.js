@@ -16,7 +16,7 @@
 
 module.exports = function(robot) {
 
-  const gitHubContext = require('./github-context.js');
+  const gitHubContext = require('./github-context.js')();
 
   return robot.on("github-repo-event", function(repo_event) {
     const githubPayload = repo_event.payload;

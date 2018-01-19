@@ -9,7 +9,7 @@
 module.exports = function(robot) {
 
   robot.brain.on('loaded', function() {
-    const gitHubContext = require('./github-context.js');
+    const gitHubContext = require('./github-context.js')();
   
     appID = robot.brain.get("github-app_id");
     if (appID) {
