@@ -73,7 +73,7 @@ async function createAccessToken(robot, github, id) {
       type: 'token',
       token: response.data.token
     });
-} catch (err) {
+  } catch (err) {
     robot.logger.error(`Couldn't create installation token: ${err}`, id);
   }
 }
