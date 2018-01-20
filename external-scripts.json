@@ -5,7 +5,7 @@
   "hubot-google-translate",
   "hubot-maps",
   "hubot-rcbrb",
-  "hubot-redis-brain",
+  "hubot-azure-brain",
   "hubot-reload-scripts",
   "hubot-commit-streak",
   "hubot-github-webhook-listener",
