@@ -4,7 +4,9 @@
   "hubot-heroku-keepalive",
   "hubot-google-translate",
   "hubot-maps",
+  "hubot-rcbrb",
   "hubot-redis-brain",
+  "hubot-reload-scripts",
   "hubot-commit-streak",
   "hubot-github-webhook-listener",
   "hubot-github-pr-reporter"
