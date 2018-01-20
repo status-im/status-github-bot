@@ -58,6 +58,9 @@ async function greetNewContributor(gitHubContext, githubPayload, robot) {
           number: prNumber,
           body: welcomeMessage
         })
+
+        // Send message to Slack
+        robot.messageRoom(githubConfig.slack.notification.room, `Greeted ${githubPayload.pull_request.user.login} on his first PR (${githubPayload.pull_request.title}) in ${repoName}\n${githubPayload.pull_request.html_url}`);
       } catch (err) {
         if (err.code !== 404) {
           robot.logger.error(`Couldn't create comment on PR: ${err}`, ownerName, repoName);
