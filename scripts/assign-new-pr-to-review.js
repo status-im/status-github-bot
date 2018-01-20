@@ -59,7 +59,7 @@ async function assignPullRequestToReview(gitHubContext, githubPayload, robot) {
     const projectBoardName = githubConfig['new-pull-requests']['project-board'].name;
     const project = ghprojects.data.find(function(p) { return p.name === projectBoardName });
     if (!project) {
-      robot.logger.warn(`Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`);
+      robot.logger.error(`Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`);
       return;
     }
     
@@ -72,7 +72,7 @@ async function assignPullRequestToReview(gitHubContext, githubPayload, robot) {
       const reviewColumnName = githubConfig['new-pull-requests']['project-board']['review-column-name'];
       const column = ghcolumns.data.find(function(c) { return c.name === reviewColumnName });
       if (!column) {
-        robot.logger.warn(`Couldn't find ${projectBoardName} column in project ${project.name}`);
+        robot.logger.error(`Couldn't find ${reviewColumnName} column in project ${project.name}`);
         return;
       }
       
