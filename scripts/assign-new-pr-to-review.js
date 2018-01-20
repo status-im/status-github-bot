@@ -89,7 +89,7 @@ async function assignPullRequestToReview(gitHubContext, githubPayload, robot) {
         robot.logger.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id);
 
         // Send message to Slack
-        robot.messageRoom(githubConfig.slack.notification.room, `Moved PR #${githubPayload.pull_request.number} (${githubPayload.pull_request.title}) to ${reviewColumnName} in ${projectBoardName} project\n${githubPayload.pull_request.html_url}`);
+        robot.messageRoom(githubConfig.slack.notification.room, `Moved PR to ${reviewColumnName} in ${projectBoardName} project\n${githubPayload.pull_request.html_url}`);
       } catch (err) {
         robot.logger.error(`Couldn't create project card for the PR: ${err}`, column.id, githubPayload.pull_request.id);
       }
