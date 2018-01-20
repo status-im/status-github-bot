@@ -10,5 +10,6 @@
   "hubot-rules",
   "hubot-shipit",
   "hubot-commit-streak",
-  "hubot-github-webhook-listener"
+  "hubot-github-webhook-listener",
+  "hubot-github-pr-reporter"
 ]
