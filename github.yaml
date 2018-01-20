@@ -9,7 +9,7 @@ new-pull-requests:
 bounty-awaiting-approval:
   project-board:
     name: 'Status SOB Swarm'
-    review-column-name: 'bounty-awaiting-approval'
+    approval-column-name: 'bounty-awaiting-approval'
 
 slack:
   notification:

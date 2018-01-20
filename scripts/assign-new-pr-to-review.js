@@ -7,10 +7,6 @@
 //   hubot-github-webhook-listener: "^0.9.1"
 //   hubot-slack: "^4.4.0"
 //
-// Notes:
-//   The hard-coded names for the project board and review column are just below.
-//   These could be read from a config file (e.g. YAML)
-//
 // Author:
 //   PombeirP
 
@@ -89,7 +85,7 @@ async function assignPullRequestToReview(gitHubContext, githubPayload, robot) {
         robot.logger.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id);
 
         // Send message to Slack
-        robot.messageRoom(githubConfig.slack.notification.room, `Moved PR to ${reviewColumnName} in ${projectBoardName} project\n${githubPayload.pull_request.html_url}`);
+        robot.messageRoom(githubConfig.slack.notification.room, `Assigned PR to ``${reviewColumnName}`` in ``${projectBoardName}`` project\n${githubPayload.pull_request.html_url}`);
       } catch (err) {
         robot.logger.error(`Couldn't create project card for the PR: ${err}`, column.id, githubPayload.pull_request.id);
       }
