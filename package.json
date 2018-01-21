@@ -9,6 +9,7 @@
     "github": "^13.1.0",
     "hubot": "^2.19.0",
     "hubot-azure-brain": "^1.0.0",
+    "hubot-brain-inspect": "0.0.1",
     "hubot-commit-streak": "^1.0.7",
     "hubot-diagnostics": "0.0.2",
     "hubot-github-pr-reporter": "^1.1.5",

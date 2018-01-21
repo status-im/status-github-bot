@@ -1,4 +1,5 @@
 [
+  "hubot-brain-inspect",
   "hubot-diagnostics",
   "hubot-help",
   "hubot-heroku-keepalive",
