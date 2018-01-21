@@ -30,7 +30,6 @@ module.exports = function(robot) {
 
             robot.brain.set('github-app_install-payload', JSON.stringify(githubPayload));
             robot.brain.set('github-app_id', githubPayload.installation.app_id);
-            robot.brain.set('github-app_repositories', githubPayload.repositories.map((x) => x.full_name).join());
 
             gitHubContext.initialize(robot, githubPayload.installation.app_id);
 
@@ -52,7 +51,6 @@ module.exports = function(robot) {
 
             robot.brain.set('github-app_id', null);
             robot.brain.set('github-app_install-payload', null);
-            robot.brain.set('github-app_repositories', null);
             robot.brain.set('github-token', null);
             process.env.HUBOT_GITHUB_TOKEN = null;
             break;
