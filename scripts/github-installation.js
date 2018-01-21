@@ -28,10 +28,10 @@ module.exports = function(robot) {
             // App was installed on an organization
             robot.logger.info(`Initializing installation for app with ID ${githubPayload.installation.app_id} and installation ID ${githubPayload.installation.id}`);
 
-            robot.brain.set('github-app_install-payload', JSON.stringify(githubPayload));
             robot.brain.set('github-app_id', githubPayload.installation.app_id);
+            robot.brain.set('github-installation_id', githubPayload.installation.id);
 
-            gitHubContext.initialize(robot, githubPayload.installation.app_id);
+            await gitHubContext.initialize(robot, githubPayload.installation.app_id, githubPayload.installation.id);
 
             var perms = githubPayload.installation.permissions;
             if (perms.repository_projects !== 'write') { robot.logger.error(formatPermMessage('repository_projects', 'write')); }
@@ -43,14 +43,14 @@ module.exports = function(robot) {
               robot.logger.error("Please enable 'pull_request' events in the app configuration on github.com");
             }
 
-            await createAccessToken(robot, gitHubContext.api(), githubPayload.installation.id);
             break;
           case "deleted":
             // App was uninstalled from an organization
             robot.logger.info(`Removing installation for app with ID ${githubPayload.installation.app_id} and installation ID ${githubPayload.installation.id}`);
 
             robot.brain.set('github-app_id', null);
-            robot.brain.set('github-app_install-payload', null);
+            robot.brain.set('github-installation_id', null);
+            robot.brain.set('github-token-expires-at', null);
             robot.brain.set('github-token', null);
             process.env.HUBOT_GITHUB_TOKEN = null;
             break;
@@ -59,21 +59,5 @@ module.exports = function(robot) {
     }
   });
 };
-
-async function createAccessToken(robot, github, id) {
-  try {
-    response = await github.apps.createInstallationToken({ installation_id: id }); 
-
-    robot.brain.set('github-token', response.data.token);
-    // TODO: Set Redis expiration date to value from response.data.expires_at
-    process.env.HUBOT_GITHUB_TOKEN = response.data.token;
-    github.authenticate({
-      type: 'token',
-      token: response.data.token
-    });
-  } catch (err) {
-    robot.logger.error(`Couldn't create installation token: ${err}`, id);
-  }
-}
 
 var formatPermMessage = (permName, perm) => `Please enable '${permName}' ${perm} permission in the app configuration on github.com`;

@@ -86,7 +86,7 @@ async function assignIssueToBountyAwaitingForApproval(gitHubContext, githubPaylo
         robot.logger.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id);
 
         // Send message to Slack
-        robot.messageRoom(githubConfig.slack.notification.room, `Assigned issue to ``${approvalColumnName}`` in ``${projectBoardName}`` project\n${githubPayload.issue.html_url}`);
+        robot.messageRoom(githubConfig.slack.notification.room, `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${githubPayload.issue.html_url}`);
       } catch (err) {
         robot.logger.error(`Couldn't create project card for the issue: ${err}`, column.id, githubPayload.issue.id);
       }
