@@ -12,7 +12,8 @@
   "dependencies": {
     "probot": "^5.0.0",
     "probot-config": "^0.1.0",
-    "probot-slack-status": "^0.2.2"
+    "probot-slack-status": "^0.2.2",
+    "first-pr-merge": "git://github.com/jarrodldavis/probot-gpg.git"
   },
   "devDependencies": {
     "jest": "^22.1.4",
@@ -26,6 +27,11 @@
   "standard": {
     "env": [
       "jest"
+    ]
+  },
+  "probot": {
+    "plugins": [
+      "probot-gpg"
     ]
   }
 }
