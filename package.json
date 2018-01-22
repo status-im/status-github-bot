@@ -10,10 +10,11 @@
     "test": "jest && standard"
   },
   "dependencies": {
+    "@jarrodldavis/probot-gpg": "git://github.com/jarrodldavis/probot-gpg.git",
     "probot": "^5.0.0",
     "probot-config": "^0.1.0",
     "probot-slack-status": "^0.2.2",
-    "first-pr-merge": "git://github.com/jarrodldavis/probot-gpg.git"
+    "unfurl": "github:probot/unfurl"
   },
   "devDependencies": {
     "jest": "^22.1.4",
@@ -31,7 +32,8 @@
   },
   "probot": {
     "plugins": [
-      "probot-gpg"
+      "@jarrodldavis/probot-gpg",
+      "unfurl"
     ]
   }
 }

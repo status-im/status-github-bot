@@ -16,6 +16,8 @@ Right now the bot has two sets of capabilities:
   - Assign new PRs to the `Pipeline for QA` project board (`REVIEW` column).
   - Assign issues that are labeled `bounty-awaiting-approval` to the `Status SOB Swarm` project board (`bounty-awaiting-approval` column).
   - Welcome users who post their first PR in a project.
+  - Checks if all commits are GPG-signed and sets the PR status accordingly.
+  - Unfurls links on Issues and Pull Request discussions.
   - New functionality will be added in the future (wishlist is being tracked [here](https://docs.google.com/document/d/19NZEJ453av-owAEBXcIPjavbGKMBFlfVcwsuQ_ORzR4/))
 
 The project board names, column names, welcome message and other values are stored in the `.github/github-bot.yml` file. It can be overriden for each specific repository by adding a file in the same path on the respective repository (see [probot-config](https://github.com/getsentry/probot-config)).
@@ -33,6 +35,7 @@ See the official [docs for deployment](https://probot.github.io/docs/deployment/
     1. In `Webhook URL`, enter the root endpoint of the service, e.g. https://5e63b0ab.ngrok.io/
     1. In `Webhook secret (optional)`, enter a string of characters that matches the value passed in the in the `WEBHOOK_SECRET` environment variable.
     1. This app requires these **Permissions & events** for the GitHub App:
+        - Commit statuses - **Read & write**
         - Issues - **Read & Write**
             - [x] Check the box for **Issue comment** events
             - [x] Check the box for **Issues** events
@@ -40,6 +43,8 @@ See the official [docs for deployment](https://probot.github.io/docs/deployment/
             - [x] Check the box for **Pull request** events
             - [x] Check the box for **Pull request review** events
             - [x] Check the box for **Pull request review comment** events
+        - Repository contents - **Read-only**
+            - [x] Check the box for **Push** events
         - Repository projects - **Read & Write**
         - Single File - **Read-only**
             - Path: `.github/github-bot.yml`
