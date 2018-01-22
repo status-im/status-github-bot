@@ -14,7 +14,8 @@
     "probot": "^5.0.0",
     "probot-config": "^0.1.0",
     "probot-slack-status": "^0.2.2",
-    "unfurl": "github:probot/unfurl"
+    "unfurl": "github:probot/unfurl",
+    "wip-bot": "github:gr2m/wip-bot"
   },
   "devDependencies": {
     "jest": "^22.1.4",
@@ -33,7 +34,8 @@
   "probot": {
     "plugins": [
       "@jarrodldavis/probot-gpg",
-      "unfurl"
+      "unfurl",
+      "wip-bot"
     ]
   }
 }

@@ -18,6 +18,7 @@ Right now the bot has two sets of capabilities:
   - Welcome users who post their first PR in a project.
   - Checks if all commits are GPG-signed and sets the PR status accordingly.
   - Unfurls links on Issues and Pull Request discussions.
+  - Disallows merging of PRs containing WIP in the title.
   - New functionality will be added in the future (wishlist is being tracked [here](https://docs.google.com/document/d/19NZEJ453av-owAEBXcIPjavbGKMBFlfVcwsuQ_ORzR4/))
 
 The project board names, column names, welcome message and other values are stored in the `.github/github-bot.yml` file. It can be overriden for each specific repository by adding a file in the same path on the respective repository (see [probot-config](https://github.com/getsentry/probot-config)).
