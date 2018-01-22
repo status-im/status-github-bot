@@ -1,0 +1,31 @@
+{
+  "name": "status-github-bot",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Pedro Pombeiro <pombeirp@users.noreply.github.com> (https://github.com/status-im/status-github-bot)",
+  "license": "ISC",
+  "repository": "https://github.com/status-im/status-github-bot.git",
+  "scripts": {
+    "start": "probot run ./index.js",
+    "test": "jest && standard"
+  },
+  "dependencies": {
+    "probot": "^5.0.0",
+    "probot-config": "^0.1.0",
+    "probot-slack-status": "^0.2.2"
+  },
+  "devDependencies": {
+    "jest": "^22.1.4",
+    "smee-client": "^1.0.1",
+    "standard": "^10.0.3"
+  },
+  "engines": {
+    "node": ">= 7.7.0",
+    "npm": ">= 4.0.0"
+  },
+  "standard": {
+    "env": [
+      "jest"
+    ]
+  }
+}
