@@ -11,6 +11,7 @@
 //   PombeirP
 
 const getConfig = require('probot-config');
+const defaultConfig = require('../lib/config.js');
 const Slack = require('probot-slack-status');
 
 let slackClient = null;
@@ -34,7 +35,7 @@ module.exports = function(robot) {
 async function greetNewContributor(context, robot) {
   const payload = context.payload;
   const github = context.github;
-  const config = await getConfig(context, 'github-bot.yml')
+  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const welcomeMessage = config['new-pull-requests']['welcome-bot'].message;
   const ownerName = payload.repository.owner.login;
   const repoName = payload.repository.name;
