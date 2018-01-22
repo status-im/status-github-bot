@@ -4,42 +4,42 @@
 //
 // Dependencies:
 //   github: "^13.1.0"
-//   hubot-github-webhook-listener: "^0.9.1"
-//   hubot-slack: "^4.4.0"
+//   probot-config "^0.1.0"
+//   probot-slack-status: "^0.2.2"
 //
 // Author:
 //   PombeirP
 
+const getConfig = require('probot-config');
+const Slack = require('probot-slack-status');
+
+let slackClient = null;
+
 module.exports = function(robot) {
+  // robot.on('slack.connected', ({ slack }) => {
+  Slack(robot, (slack) => {
+    robot.log.trace("Connected, assigned slackClient");
+    slackClient = slack;
+  });
+  
+  robot.on('pull_request.opened', async context => {
+    // Make sure we don't listen to our own messages
+    if (context.isBot) { return; }
 
-  const gitHubContext = require('./github-context.js')();
-
-  return robot.on("github-repo-event", function(repo_event) {
-    const githubPayload = repo_event.payload;
-
-    switch(repo_event.eventType) {
-      case "pull_request":
-        // Make sure we don't listen to our own messages
-        if (gitHubContext.equalsRobotName(robot, githubPayload.pull_request.user.login)) { return; }
-
-        var { action } = githubPayload;
-        if (action === "opened") {
-          // A new PR was opened
-          return assignPullRequestToReview(gitHubContext, githubPayload, robot);
-        }
-        break;
-    }
+    // A new PR was opened
+    await assignPullRequestToReview(context, robot);
   });
 };
 
-async function assignPullRequestToReview(gitHubContext, githubPayload, robot) {
-  const github = gitHubContext.api();
-  const githubConfig = gitHubContext.config();
-  const ownerName = githubPayload.repository.owner.login;
-  const repoName = githubPayload.repository.name;
-  const prNumber = githubPayload.pull_request.number;
+async function assignPullRequestToReview(context, robot) {
+  const payload = context.payload;
+  const github = context.github;
+  const config = await getConfig(context, 'github-bot.yml')
+  const ownerName = payload.repository.owner.login;
+  const repoName = payload.repository.name;
+  const prNumber = payload.pull_request.number;
 
-  robot.logger.info(`assignPullRequestToReview - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`);
+  robot.log(`assignPullRequestToReview - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`);
 
   // Fetch repo projects
   // TODO: The repo project and project column info should be cached
@@ -52,47 +52,56 @@ async function assignPullRequestToReview(gitHubContext, githubPayload, robot) {
     });
 
     // Find "Pipeline for QA" project
-    const projectBoardName = githubConfig['new-pull-requests']['project-board'].name;
+    const projectBoardName = config['new-pull-requests']['project-board'].name;
     const project = ghprojects.data.find(function(p) { return p.name === projectBoardName });
     if (!project) {
-      robot.logger.error(`Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`);
+      robot.log.error(`Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`);
       return;
     }
     
-    robot.logger.debug(`Fetched ${project.name} project (${project.id})`);
+    robot.log.debug(`Fetched ${project.name} project (${project.id})`);
 
     // Fetch REVIEW column ID
     try {
       ghcolumns = await github.projects.getProjectColumns({ project_id: project.id });  
 
-      const reviewColumnName = githubConfig['new-pull-requests']['project-board']['review-column-name'];
+      const reviewColumnName = config['new-pull-requests']['project-board']['review-column-name'];
       const column = ghcolumns.data.find(function(c) { return c.name === reviewColumnName });
       if (!column) {
-        robot.logger.error(`Couldn't find ${reviewColumnName} column in project ${project.name}`);
+        robot.log.error(`Couldn't find ${reviewColumnName} column in project ${project.name}`);
         return;
       }
       
-      robot.logger.debug(`Fetched ${column.name} column (${column.id})`);
+      robot.log.debug(`Fetched ${column.name} column (${column.id})`);
 
       // Create project card for the PR in the REVIEW column
       try {
         ghcard = await github.projects.createProjectCard({
           column_id: column.id,
           content_type: 'PullRequest',
-          content_id: githubPayload.pull_request.id
+          content_id: payload.pull_request.id
         });
 
-        robot.logger.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id);
+        robot.log.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id);
 
         // Send message to Slack
-        robot.messageRoom(githubConfig.slack.notification.room, `Assigned PR to ${reviewColumnName} in ${projectBoardName} project\n${githubPayload.pull_request.html_url}`);
+        if (slackClient != null) {
+          const channel = slackClient.dataStore.getChannelByName(config.slack.notification.room);
+          try {
+            await slackClient.sendMessage(`Assigned PR to ${reviewColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`, channel.id);
+          } catch(err) {
+            robot.log.error(`Failed to send Slack message to ${config.slack.notification.room} channel`);
+          }
+        } else {
+          robot.log.debug("Slack client not available");
+        }
       } catch (err) {
-        robot.logger.error(`Couldn't create project card for the PR: ${err}`, column.id, githubPayload.pull_request.id);
+        robot.log.error(`Couldn't create project card for the PR: ${err}`, column.id, payload.pull_request.id);
       }
     } catch (err) {
-      robot.logger.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id);
+      robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id);
     }
   } catch (err) {
-    robot.logger.error(`Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName);
+    robot.log.error(`Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName);
   }
 };

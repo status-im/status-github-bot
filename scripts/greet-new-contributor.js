@@ -4,52 +4,52 @@
 //
 // Dependencies:
 //   github: "^13.1.0"
-//   hubot-github-webhook-listener: "^0.9.1"
+//   probot-config "^0.1.0"
+//   probot-slack-status: "^0.2.2"
 //
 // Author:
 //   PombeirP
 
+const getConfig = require('probot-config');
+const Slack = require('probot-slack-status');
+
+let slackClient = null;
+
 module.exports = function(robot) {
+  // robot.on('slack.connected', ({ slack }) => {
+  Slack(robot, (slack) => {
+    robot.log.trace("Connected, assigned slackClient");
+    slackClient = slack;
+  });
 
-  const gitHubContext = require('./github-context.js')();
-
-  return robot.on("github-repo-event", function(repo_event) {
-    const githubPayload = repo_event.payload;
-
-    switch(repo_event.eventType) {
-      case "pull_request":
-        // Make sure we don't listen to our own messages
-        if (gitHubContext.equalsRobotName(robot, githubPayload.pull_request.user.login)) { return; }
-
-        var { action } = githubPayload;
-        if (action === "opened") {
-          // A new PR was opened
-          return greetNewContributor(gitHubContext, githubPayload, robot);
-        }
-        break;
-    }
+  robot.on('pull_request.opened', async context => {
+    // Make sure we don't listen to our own messages
+    if (context.isBot) { return; }
+    
+    // A new PR was opened
+    await greetNewContributor(context, robot);
   });
 };
 
-async function greetNewContributor(gitHubContext, githubPayload, robot) {
-  // TODO: Read the welcome message from a (per-repo?) file (e.g. status-react.welcome-msg.md)
-  const github = gitHubContext.api();
-  const githubConfig = gitHubContext.config();
-  const welcomeMessage = githubConfig['new-pull-requests']['welcome-bot'].message;
-  const ownerName = githubPayload.repository.owner.login;
-  const repoName = githubPayload.repository.name;
-  const prNumber = githubPayload.pull_request.number;
-
-  robot.logger.info(`greetNewContributor - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`);
-
+async function greetNewContributor(context, robot) {
+  const payload = context.payload;
+  const github = context.github;
+  const config = await getConfig(context, 'github-bot.yml')
+  const welcomeMessage = config['new-pull-requests']['welcome-bot'].message;
+  const ownerName = payload.repository.owner.login;
+  const repoName = payload.repository.name;
+  const prNumber = payload.pull_request.number;
+  
+  robot.log(`greetNewContributor - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`);
+  
   try {
     ghissues = await github.issues.getForRepo({
       owner: ownerName,
       repo: repoName,
       state: 'all',
-      creator: githubPayload.pull_request.user.login
+      creator: payload.pull_request.user.login
     })
-
+    
     const userPullRequests = ghissues.data.filter(issue => issue.pull_request);
     if (userPullRequests.length === 1) {
       try {
@@ -59,18 +59,25 @@ async function greetNewContributor(gitHubContext, githubPayload, robot) {
           number: prNumber,
           body: welcomeMessage
         })
-
+        
         // Send message to Slack
-        robot.messageRoom(githubConfig.slack.notification.room, `Greeted ${githubPayload.pull_request.user.login} on his first PR in the ${repoName} repo\n${githubPayload.pull_request.html_url}`);
+        if (slackClient != null) {
+          const channel = slackClient.dataStore.getChannelByName(config.slack.notification.room);
+          try {
+            await slackClient.sendMessage(`Greeted ${payload.pull_request.user.login} on his first PR in the ${repoName} repo\n${payload.pull_request.html_url}`, channel.id);
+          } catch(err) {
+            robot.log.error(`Failed to send Slack message to ${config.slack.notification.room} channel`);
+          }
+        }
       } catch (err) {
         if (err.code !== 404) {
-          robot.logger.error(`Couldn't create comment on PR: ${err}`, ownerName, repoName);
+          robot.log.error(`Couldn't create comment on PR: ${err}`, ownerName, repoName);
         }
       }
     } else {
-      robot.logger.debug("This is not the user's first PR on the repo, ignoring", ownerName, repoName, githubPayload.pull_request.user.login);
+      robot.log.debug("This is not the user's first PR on the repo, ignoring", ownerName, repoName, payload.pull_request.user.login);
     }
   } catch (err) {
-    robot.logger.error(`Couldn't fetch the user's github issues for repo: ${err}`, ownerName, repoName);
+    robot.log.error(`Couldn't fetch the user's github issues for repo: ${err}`, ownerName, repoName);
   }
 };

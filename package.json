@@ -1,31 +1,31 @@
 {
-  "name": "statusbot",
-  "version": "0.0.0",
-  "private": true,
-  "author": "Pedro Pombeiro <pombeirp@users.noreply.github.com>",
-  "description": "A simple helpful robot for your Company",
+  "name": "status-github-bot",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Pedro Pombeiro <pombeirp@users.noreply.github.com> (https://github.com/status-im/status-github-bot)",
+  "license": "ISC",
+  "repository": "https://github.com/status-im/status-github-bot.git",
+  "scripts": {
+    "start": "probot run ./index.js",
+    "test": "jest && standard"
+  },
   "dependencies": {
-    "coffee-script": "^1.12.7",
-    "github": "^13.1.0",
-    "hubot": "^2.19.0",
-    "hubot-azure-brain": "^1.0.0",
-    "hubot-brain-inspect": "0.0.1",
-    "hubot-commit-streak": "^1.0.7",
-    "hubot-diagnostics": "0.0.2",
-    "hubot-github-pr-reporter": "^1.1.5",
-    "hubot-github-webhook-listener": "^0.9.1",
-    "hubot-google-translate": "^0.2.1",
-    "hubot-help": "^0.2.2",
-    "hubot-heroku-keepalive": "^1.0.3",
-    "hubot-maps": "0.0.3",
-    "hubot-rcbrb": "^1.0.5",
-    "hubot-reload-scripts": "^0.1.4",
-    "hubot-scripts": "^2.17.2",
-    "hubot-slack": "^4.4.0",
-    "js-yaml": "^3.10.0",
-    "jwt-simple": "^0.5.1"
+    "probot": "^5.0.0",
+    "probot-config": "^0.1.0",
+    "probot-slack-status": "^0.2.2"
+  },
+  "devDependencies": {
+    "jest": "^22.1.4",
+    "smee-client": "^1.0.1",
+    "standard": "^10.0.3"
   },
   "engines": {
-    "node": "9.x.x"
+    "node": ">= 7.7.0",
+    "npm": ">= 4.0.0"
+  },
+  "standard": {
+    "env": [
+      "jest"
+    ]
   }
 }
