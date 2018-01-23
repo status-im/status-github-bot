@@ -128,6 +128,9 @@ async function assignPullRequestToTest(context, robot) {
         return
       }
       
+      // Send message to Slack
+      const slackHelper = require('../lib/slack')
+
       if (ghcard) {
         try {
           robot.log.trace(`Found card in source column ${ghcard.id}`, srcColumn.id)
@@ -138,6 +141,7 @@ async function assignPullRequestToTest(context, robot) {
           robot.log.debug(`Moved card: ${ghcard.url}`, ghcard.id)
         } catch (err) {
           robot.log.error(`Couldn't move project card for the PR: ${err}`, srcColumn.id, dstColumn.id, payload.pull_request.id)
+          slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `I couldn't move the PR to ${dstColumnName} in ${projectBoardName} project :confused:\n${payload.pull_request.html_url}`)
           return
         }
       } else {
@@ -154,12 +158,11 @@ async function assignPullRequestToTest(context, robot) {
           robot.log.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id)
         } catch (err) {
           robot.log.error(`Couldn't create project card for the PR: ${err}`, dstColumn.id, payload.pull_request.id)
+          slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `I couldn't create a card for the PR in ${dstColumnName} in ${projectBoardName} project :confused:, maybe there's already a card for it in a column other than ${reviewColumnName}\n${payload.pull_request.html_url}`)
           return
         }
       }
       
-      // Send message to Slack
-      const slackHelper = require('../lib/slack')
       slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned PR to ${dstColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`)
     } catch (err) {
       robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
