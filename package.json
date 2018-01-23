@@ -12,7 +12,7 @@
   "dependencies": {
     "probot": "^5.0.0",
     "probot-config": "^0.1.0",
-    "probot-gpg-status": "^0.5.1",
+    "probot-gpg-status": "^0.5.2",
     "probot-slack-status": "^0.2.2",
     "unfurl": "github:probot/unfurl",
     "wip-bot": "github:gr2m/wip-bot"
