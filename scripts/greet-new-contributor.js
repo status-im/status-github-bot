@@ -4,7 +4,7 @@
 //
 // Dependencies:
 //   github: "^13.1.0"
-//   probot-config "^0.1.0"
+//   probot-config: "^0.1.0"
 //   probot-slack-status: "^0.2.2"
 //
 // Author:
@@ -59,12 +59,14 @@ async function greetNewContributor(context, robot) {
     if (userPullRequests.length === 1) {
       try {
         const welcomeMessage = config['welcome-bot'].message
-        await github.issues.createComment({
-          owner: ownerName,
-          repo: repoName,
-          number: prNumber,
-          body: welcomeMessage
-        })
+        if (!process.env.DRY_RUN) {
+          await github.issues.createComment({
+            owner: ownerName,
+            repo: repoName,
+            number: prNumber,
+            body: welcomeMessage
+          })
+        }
         
         // Send message to Slack
         const slackHelper = require('../lib/slack')

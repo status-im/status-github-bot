@@ -4,7 +4,7 @@
 //
 // Dependencies:
 //   github: "^13.1.0"
-//   probot-config "^0.1.0"
+//   probot-config: "^0.1.0"
 //   probot-slack-status: "^0.2.2"
 //
 // Author:
@@ -79,27 +79,31 @@ async function assignPullRequestToReview(context, robot) {
       }
       
       robot.log.debug(`Fetched ${column.name} column (${column.id})`)
-      
-      // Create project card for the PR in the REVIEW column
-      try {
-        ghcard = await github.projects.createProjectCard({
-          column_id: column.id,
-          content_type: 'PullRequest',
-          content_id: payload.pull_request.id
-        })
-        
-        robot.log.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id)
-        
-        // Send message to Slack
-        const slackHelper = require('../lib/slack')
-        slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned PR to ${reviewColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`)
-      } catch (err) {
-        robot.log.error(`Couldn't create project card for the PR: ${err}`, column.id, payload.pull_request.id)
-      }
     } catch (err) {
       robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
+      return
     }
   } catch (err) {
     robot.log.error(`Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    return
+  }
+      
+  // Create project card for the PR in the REVIEW column
+  try {
+    if (!process.env.DRY_RUN) {
+      ghcard = await github.projects.createProjectCard({
+        column_id: column.id,
+        content_type: 'PullRequest',
+        content_id: payload.pull_request.id
+      })
+    }
+    
+    robot.log.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id)
+    
+    // Send message to Slack
+    const slackHelper = require('../lib/slack')
+    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned PR to ${reviewColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`)
+  } catch (err) {
+    robot.log.error(`Couldn't create project card for the PR: ${err}`, column.id, payload.pull_request.id)
   }
 }

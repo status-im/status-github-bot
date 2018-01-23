@@ -4,7 +4,7 @@
 //
 // Dependencies:
 //   github: "^13.1.0"
-//   probot-config "^0.1.0"
+//   probot-config: "^0.1.0"
 //   probot-slack-status: "^0.2.2"
 //
 // Author:
@@ -80,27 +80,31 @@ async function assignIssueToBountyAwaitingForApproval(context, robot) {
       }
       
       robot.log.debug(`Fetched ${column.name} column (${column.id})`)
-      
-      // Create project card for the issue in the bounty-awaiting-approval column
-      try {
-        ghcard = await github.projects.createProjectCard({
-          column_id: column.id,
-          content_type: 'Issue',
-          content_id: payload.issue.id
-        })
-        
-        robot.log.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id)
-        
-        // Send message to Slack
-        const slackHelper = require('../lib/slack')
-        slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
-      } catch (err) {
-        robot.log.error(`Couldn't create project card for the issue: ${err}`, column.id, payload.issue.id)
-      }
     } catch (err) {
       robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
+      return
     }
   } catch (err) {
     robot.log.error(`Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    return
+  }
+  
+  // Create project card for the issue in the bounty-awaiting-approval column
+  try {
+    if (!process.env.DRY_RUN) {
+      ghcard = await github.projects.createProjectCard({
+        column_id: column.id,
+        content_type: 'Issue',
+        content_id: payload.issue.id
+      })
+    }
+    
+    robot.log.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id)
+    
+    // Send message to Slack
+    const slackHelper = require('../lib/slack')
+    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
+  } catch (err) {
+    robot.log.error(`Couldn't create project card for the issue: ${err}`, column.id, payload.issue.id)
   }
 }
