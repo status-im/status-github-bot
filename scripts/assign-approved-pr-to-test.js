@@ -31,11 +31,14 @@ async function getReviewApprovalState(github, payload) {
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
   const prNumber = payload.pull_request.number
-
+  
   const ghreviews = await github.pullRequests.getReviews({owner: ownerName, repo: repoName, number: prNumber})
   const approvedReviews = ghreviews.data.filter(review => review.state === 'APPROVED')
   if (approvedReviews.length >= 2) {
-    return 'approved'
+    const reviewsWithChangesRequested = ghreviews.data.filter(review => review.state === 'CHANGES_REQUESTED')
+    if (reviewsWithChangesRequested.length == 0) {
+      return 'approved'
+    }
   }
   
   return 'pending'
@@ -124,11 +127,11 @@ async function assignPullRequestToTest(context, robot) {
         robot.log.error(`Failed to retrieve project card for the PR, aborting: ${err}`, srcColumn.id, payload.pull_request.issue_url)
         return
       }
-
+      
       if (ghcard) {
         try {
           robot.log.trace(`Found card in source column ${ghcard.id}`, srcColumn.id)
-
+          
           // Found in the source column, let's move it to the destination column
           await github.projects.moveProjectCard({id: ghcard.id, position: 'bottom', column_id: dstColumn.id})
           
@@ -140,7 +143,7 @@ async function assignPullRequestToTest(context, robot) {
       } else {
         try {
           robot.log.debug(`Didn't find card in source column`, srcColumn.id)
-
+          
           // It wasn't in source column, let's create a new card for it in the destination column
           ghcard = await github.projects.createProjectCard({
             column_id: dstColumn.id,
@@ -154,7 +157,7 @@ async function assignPullRequestToTest(context, robot) {
           return
         }
       }
-        
+      
       // Send message to Slack
       const slackHelper = require('../lib/slack')
       slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned PR to ${dstColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`)
