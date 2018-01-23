@@ -158,7 +158,6 @@ async function assignPullRequestToTest(context, robot) {
           robot.log.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id)
         } catch (err) {
           robot.log.error(`Couldn't create project card for the PR: ${err}`, dstColumn.id, payload.pull_request.id)
-          slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `I couldn't create a card for the PR in ${dstColumnName} in ${projectBoardName} project :confused:, maybe there's already a card for it in a column other than ${reviewColumnName}\n${payload.pull_request.html_url}`)
           return
         }
       }
