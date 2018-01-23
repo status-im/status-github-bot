@@ -35,7 +35,8 @@ module.exports = function(robot) {
 async function assignIssueToBountyAwaitingForApproval(context, robot) {
   const github = context.github;
   const payload = context.payload;
-  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  //const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'));
+  const config = defaultConfig(robot, '.github/github-bot.yml');
   const ownerName = payload.repository.owner.login;
   const repoName = payload.repository.name;
   const issueNumber = payload.issue.number;
@@ -54,7 +55,7 @@ async function assignIssueToBountyAwaitingForApproval(context, robot) {
     });
     
     // Find "Status SOB Swarm" project
-    const projectBoardName = config['bounty-awaiting-approval']['project-board'].name;
+    const projectBoardName = config['bounty-project-board'].name;
     const project = ghprojects.data.find(function(p) { return p.name === projectBoardName });
     if (!project) {
       robot.log.error(`Couldn't find project ${projectBoardName} in ${orgName} org`);
@@ -67,7 +68,7 @@ async function assignIssueToBountyAwaitingForApproval(context, robot) {
     try {
       ghcolumns = await github.projects.getProjectColumns({ project_id: project.id });  
       
-      const approvalColumnName = config['bounty-awaiting-approval']['project-board']['approval-column-name'];
+      const approvalColumnName = config['bounty-project-board']['awaiting-approval-column-name'];
       const column = ghcolumns.data.find(function(c) { return c.name === approvalColumnName });
       if (!column) {
         robot.log.error(`Couldn't find ${approvalColumnName} column in project ${project.name}`);

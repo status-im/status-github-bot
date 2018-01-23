@@ -35,8 +35,9 @@ module.exports = function(robot) {
 async function greetNewContributor(context, robot) {
   const payload = context.payload;
   const github = context.github;
-  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
-  const welcomeMessage = config['new-pull-requests']['welcome-bot'].message;
+  //const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'));
+  const config = defaultConfig(robot, '.github/github-bot.yml');
+  const welcomeMessage = config['welcome-bot'].message;
   const ownerName = payload.repository.owner.login;
   const repoName = payload.repository.name;
   const prNumber = payload.pull_request.number;

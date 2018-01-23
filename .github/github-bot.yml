@@ -1,16 +1,15 @@
-new-pull-requests:
-  project-board:
-    name: 'Pipeline for QA'
-    review-column-name: 'REVIEW'
+project-board:
+  name: 'Pipeline for QA'
+  review-column-name: 'REVIEW'
+  test-column-name: 'TO TEST'
 
-  welcome-bot:
-    message: 'Thanks for making your first PR here!'
+bounty-project-board:
+  name: 'Status SOB Swarm'
+  awaiting-approval-column-name: 'bounty-awaiting-approval'
 
-bounty-awaiting-approval:
-  project-board:
-    name: 'Status SOB Swarm'
-    approval-column-name: 'bounty-awaiting-approval'
+welcome-bot:
+  message: 'Thanks for making your first PR here!'
 
 slack:
   notification:
-    room: 'status-hubot'
+    room: 'status-probot'

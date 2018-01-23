@@ -35,7 +35,8 @@ module.exports = function(robot) {
 async function assignPullRequestToReview(context, robot) {
   const payload = context.payload;
   const github = context.github;
-  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  //const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'));
+  const config = defaultConfig(robot, '.github/github-bot.yml');
   const ownerName = payload.repository.owner.login;
   const repoName = payload.repository.name;
   const prNumber = payload.pull_request.number;
@@ -53,7 +54,7 @@ async function assignPullRequestToReview(context, robot) {
     });
 
     // Find "Pipeline for QA" project
-    const projectBoardName = config['new-pull-requests']['project-board'].name;
+    const projectBoardName = config['project-board'].name;
     const project = ghprojects.data.find(function(p) { return p.name === projectBoardName });
     if (!project) {
       robot.log.error(`Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`);
@@ -66,7 +67,7 @@ async function assignPullRequestToReview(context, robot) {
     try {
       ghcolumns = await github.projects.getProjectColumns({ project_id: project.id });  
 
-      const reviewColumnName = config['new-pull-requests']['project-board']['review-column-name'];
+      const reviewColumnName = config['project-board']['review-column-name'];
       const column = ghcolumns.data.find(function(c) { return c.name === reviewColumnName });
       if (!column) {
         robot.log.error(`Couldn't find ${reviewColumnName} column in project ${project.name}`);
