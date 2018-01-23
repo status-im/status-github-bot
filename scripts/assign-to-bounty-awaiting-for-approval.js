@@ -41,6 +41,10 @@ async function assignIssueToBountyAwaitingForApproval(context, robot) {
   const repoName = payload.repository.name
   const issueNumber = payload.issue.number
   
+  if (!config['bounty-project-board']) {
+    return;
+  }
+  
   robot.log(`assignIssueToBountyAwaitingForApproval - Handling Issue #${issueNumber} on repo ${ownerName}/${repoName}`)
   
   // Fetch org projects

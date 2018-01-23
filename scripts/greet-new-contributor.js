@@ -37,10 +37,13 @@ async function greetNewContributor(context, robot) {
   const github = context.github
   //const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const config = defaultConfig(robot, '.github/github-bot.yml')
-  const welcomeMessage = config['welcome-bot'].message
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
   const prNumber = payload.pull_request.number
+  
+  if (!config['welcome-bot']) {
+    return;
+  }
   
   robot.log(`greetNewContributor - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
   
@@ -55,6 +58,7 @@ async function greetNewContributor(context, robot) {
     const userPullRequests = ghissues.data.filter(issue => issue.pull_request)
     if (userPullRequests.length === 1) {
       try {
+        const welcomeMessage = config['welcome-bot'].message
         await github.issues.createComment({
           owner: ownerName,
           repo: repoName,

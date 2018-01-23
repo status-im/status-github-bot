@@ -41,6 +41,10 @@ async function assignPullRequestToReview(context, robot) {
   const repoName = payload.repository.name
   const prNumber = payload.pull_request.number
   
+  if (!config['project-board']) {
+    return;
+  }
+  
   robot.log(`assignPullRequestToReview - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
   
   // Fetch repo projects
