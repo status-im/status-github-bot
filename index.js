@@ -2,6 +2,7 @@ module.exports = (robot) => {
   console.log('Yay, the app was loaded!')
 
   require('./scripts/assign-new-pr-to-review')(robot)
+  require('./scripts/assign-approved-pr-to-test')(robot)
   require('./scripts/assign-to-bounty-awaiting-for-approval')(robot)
   require('./scripts/greet-new-contributor')(robot)
 
