@@ -10,7 +10,7 @@
     "test": "jest && standard"
   },
   "dependencies": {
-    "@jarrodldavis/probot-gpg": "git://github.com/jarrodldavis/probot-gpg.git",
+    "@jarrodldavis/probot-gpg": "github:jarrodldavis/probot-gpg",
     "probot": "^5.0.0",
     "probot-config": "^0.1.0",
     "probot-slack-status": "^0.2.2",
