@@ -109,7 +109,7 @@ async function getProjectFromName(github, ownerName, repoName, projectBoardName)
   return ghprojects.data.find(p => p.name === projectBoardName)
 }
 
-async function getProjectCardForPullRequest(github, robot, columnId, pullRequestUrl) {
+async function getProjectCardForPullRequest(github, columnId, pullRequestUrl) {
   const ghcards = await github.projects.getProjectCards({column_id: columnId})
   ghcard = ghcards.data.find(c => c.content_url === pullRequestUrl)
   
@@ -207,7 +207,7 @@ async function assignPullRequestToCorrectColumn(github, robot, repo, pullRequest
   // Look for PR card in source column
   let ghcard = null
   try {
-    ghcard = await getProjectCardForPullRequest(github, robot, srcColumn.id, pullRequest.issue_url)
+    ghcard = await getProjectCardForPullRequest(github, srcColumn.id, pullRequest.issue_url)
   } catch (err) {
     robot.log.error(`Failed to retrieve project card for the PR, aborting: ${err}`, srcColumn.id, pullRequest.issue_url)
     return
@@ -239,7 +239,7 @@ async function assignPullRequestToCorrectColumn(github, robot, repo, pullRequest
       
       // Look for PR card in destination column
       try {
-        ghcard = await getProjectCardForPullRequest(github, robot, dstColumn.id, pullRequest.issue_url)
+        ghcard = await getProjectCardForPullRequest(github, dstColumn.id, pullRequest.issue_url)
         if (ghcard) {
           robot.log.trace(`Found card in target column, ignoring`, ghcard.id, dstColumn.id)
           return
