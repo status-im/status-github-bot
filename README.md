@@ -1,6 +1,6 @@
 # statusbot
 
-statusbot is a chat bot built on the [Probot][probot] framework.
+statusbot is a chat bot built on the [Probot][probot] framework. There's a wiki available [here][https://wiki.status.im/GitHub_bot].
 
 This README is intended to help get you started. Definitely update and improve
 to talk about your own instance, how to use and deploy, what functionality is
