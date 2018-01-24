@@ -5,6 +5,7 @@ project-board:
 
 bounty-project-board:
   name: 'Status SOB Swarm'
+  label-name: 'bounty-awaiting-approval'
   awaiting-approval-column-name: 'bounty-awaiting-approval'
 
 welcome-bot:

@@ -28,30 +28,46 @@ module.exports = function(robot) {
     if (context.isBot) { return }
     
     // A new issue was labeled
-    await assignIssueToBountyAwaitingForApproval(context, robot)
+    await assignIssueToBountyAwaitingForApproval(context, robot, true)
+  })
+  robot.on('issues.unlabeled', async context => {
+    // Make sure we don't listen to our own messages
+    if (context.isBot) { return }
+    
+    // An issue was unlabeled
+    await assignIssueToBountyAwaitingForApproval(context, robot, false)
   })
 }
 
-async function assignIssueToBountyAwaitingForApproval(context, robot) {
+async function assignIssueToBountyAwaitingForApproval(context, robot, assign) {
   const github = context.github
   const payload = context.payload
-  //const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
-  const config = defaultConfig(robot, '.github/github-bot.yml')
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
-  const issueNumber = payload.issue.number
+  //const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  const config = defaultConfig(robot, '.github/github-bot.yml')
   
   if (!config['bounty-project-board']) {
     return;
   }
   
-  robot.log(`assignIssueToBountyAwaitingForApproval - Handling Issue #${issueNumber} on repo ${ownerName}/${repoName}`)
+  const watchedLabelName = config['bounty-project-board']['label-name']
+  if (payload.label.name !== watchedLabelName) {
+    robot.log.debug(`assignIssueToBountyAwaitingForApproval - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
+    return
+  }
+  
+  if (assign) {
+    robot.log(`assignIssueToBountyAwaitingForApproval - Handling labelling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
+  } else {
+    robot.log(`assignIssueToBountyAwaitingForApproval - Handling unlabelling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
+  }
   
   // Fetch org projects
   // TODO: The org project and project column info should be cached
   // in order to improve performance and reduce roundtrips
   try {
-    const orgName = 'status-im'
+    const orgName = ownerName
     
     ghprojects = await github.projects.getOrgProjects({
       org: orgName,
@@ -89,22 +105,44 @@ async function assignIssueToBountyAwaitingForApproval(context, robot) {
     return
   }
   
-  // Create project card for the issue in the bounty-awaiting-approval column
-  try {
-    if (!process.env.DRY_RUN) {
-      ghcard = await github.projects.createProjectCard({
-        column_id: column.id,
-        content_type: 'Issue',
-        content_id: payload.issue.id
-      })
+  if (!process.env.DRY_RUN) {
+    if (assign) {
+      try {
+        // Create project card for the issue in the bounty-awaiting-approval column
+        ghcard = await github.projects.createProjectCard({
+          column_id: column.id,
+          content_type: 'Issue',
+          content_id: payload.issue.id
+        })
+        ghcard = ghcard.data
+      } catch (err) {
+        robot.log.error(`Couldn't create project card for the issue: ${err}`, column.id, payload.issue.id)
+      }
+    } else {
+      try {
+        ghcard = await getProjectCardForIssue(github, column.id, payload.issue.url)
+        await github.projects.deleteProjectCard({id: ghcard.id})
+      } catch (err) {
+        robot.log.error(`Couldn't delete project card for the issue: ${err}`, column.id, payload.issue.id)
+      }
     }
-    
-    robot.log.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id)
-    
-    // Send message to Slack
-    const slackHelper = require('../lib/slack')
-    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
-  } catch (err) {
-    robot.log.error(`Couldn't create project card for the issue: ${err}`, column.id, payload.issue.id)
   }
+
+  const slackHelper = require('../lib/slack')
+  if (assign) {
+    robot.log(`Created card: ${ghcard.url}`, ghcard.id)
+    // Send message to Slack
+    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
+  } else {
+    robot.log(`Deleted card: ${ghcard.url}`, ghcard.id)
+    // Send message to Slack
+    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
+  }
+}
+
+async function getProjectCardForIssue(github, columnId, issueUrl) {
+  const ghcards = await github.projects.getProjectCards({column_id: columnId})
+  ghcard = ghcards.data.find(c => c.content_url === issueUrl)
+  
+  return ghcard
 }
