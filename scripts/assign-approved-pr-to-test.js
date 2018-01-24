@@ -40,7 +40,13 @@ async function getReviewApprovalState(github, robot, repo, pullRequest) {
     github.pullRequests.getReviews({owner: ownerName, repo: repoName, number: prNumber}),
     res => res.data)
   for (var review of ghreviews) {
-    finalReviewsMap.set(review.user.id, review.state)
+    switch (review.state) {
+      case 'APPROVED':
+      case 'CHANGES_REQUESTED':
+      case 'PENDING':
+        finalReviewsMap.set(review.user.id, review.state)
+        break
+    }
   }
   var finalReviews = Array.from(finalReviewsMap.values())
   if (process.env.DRY_RUN_PR_TO_TEST) {
