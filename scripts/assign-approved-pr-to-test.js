@@ -30,25 +30,9 @@ module.exports = function(robot) {
 }
 
 async function getReviewApprovalState(github, robot, repo, pullRequest) {
-  const ownerName = repo.owner.login
-  const repoName = repo.name
-  const prNumber = pullRequest.number
-  const threshold = 2
+  const threshold = 2 // Minimum number of approvers
   
-  var finalReviewsMap = new Map()
-  const ghreviews = await github.paginate(
-    github.pullRequests.getReviews({owner: ownerName, repo: repoName, number: prNumber}),
-    res => res.data)
-  for (var review of ghreviews) {
-    switch (review.state) {
-      case 'APPROVED':
-      case 'CHANGES_REQUESTED':
-      case 'PENDING':
-        finalReviewsMap.set(review.user.id, review.state)
-        break
-    }
-  }
-  var finalReviews = Array.from(finalReviewsMap.values())
+  var finalReviews = await getPullRequestReviewStates(github, repo, pullRequest)
   if (process.env.DRY_RUN_PR_TO_TEST) {
     robot.log.debug(finalReviews)
   }
@@ -67,14 +51,29 @@ async function getReviewApprovalState(github, robot, repo, pullRequest) {
   return 'pending'
 }
   
-async function isStatusGreen(github, robot, repo, pullRequest) {
-  const ownerName = repo.owner.login
-  const repoName = repo.name
+async function getPullRequestReviewStates(github, repo, pullRequest) {
+  var finalReviewsMap = new Map()
+  const ghreviews = await github.paginate(
+    github.pullRequests.getReviews({owner: repo.owner.login, repo: repo.name, number: pullRequest.number}),
+    res => res.data)
+  for (var review of ghreviews) {
+    switch (review.state) {
+      case 'APPROVED':
+      case 'CHANGES_REQUESTED':
+      case 'PENDING':
+        finalReviewsMap.set(review.user.id, review.state)
+        break
+    }
+  }
 
+  return Array.from(finalReviewsMap.values())
+}
+
+async function isStatusGreen(github, robot, repo, pullRequest) {
   // Accumulate all the statuses by chronological order and check if we have a green light
   var finalStatesMap = new Map()
   const ghstatuses = await github.paginate(
-    github.repos.getStatuses({owner: ownerName, repo: repoName, ref: pullRequest.head.sha}),
+    github.repos.getStatuses({owner: repo.owner.login, repo: repo.name, ref: pullRequest.head.sha}),
     res => res.data)
   var sortedStatuses = Array.from(ghstatuses).sort((a, b) => {
     if (a.updated_at < b.updated_at) {
