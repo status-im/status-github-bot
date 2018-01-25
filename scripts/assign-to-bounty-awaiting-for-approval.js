@@ -58,9 +58,9 @@ async function assignIssueToBountyAwaitingForApproval(context, robot, assign) {
   }
   
   if (assign) {
-    robot.log(`assignIssueToBountyAwaitingForApproval - Handling labelling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
+    robot.log(`assignIssueToBountyAwaitingForApproval - Handling labeling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
   } else {
-    robot.log(`assignIssueToBountyAwaitingForApproval - Handling unlabelling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
+    robot.log(`assignIssueToBountyAwaitingForApproval - Handling unlabeling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
   }
   
   // Fetch org projects

@@ -47,6 +47,9 @@ See the official [docs for deployment](https://probot.github.io/docs/deployment/
         - Repository contents - **Read-only**
             - [x] Check the box for **Push** events
         - Repository projects - **Read & Write**
+            - [x] Check the box for **Project for repository projects** events
+        - Organization projects - **Read-only**
+            - [x] Check the box for **Project for organization projects** events
         - Single File - **Read-only**
             - Path: `.github/github-bot.yml`
     1. Generate a private key pass and save it.
