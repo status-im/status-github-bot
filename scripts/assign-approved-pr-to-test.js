@@ -41,10 +41,30 @@ async function getReviewApprovalState(github, robot, repo, pullRequest) {
   if (approvedReviews.length >= threshold) {
     const reviewsWithChangesRequested = finalReviews.filter(reviewState => reviewState === 'CHANGES_REQUESTED')
     if (reviewsWithChangesRequested.length == 0) {
-      var isGreen = await isStatusGreen(github, robot, repo, pullRequest)
-      if (isGreen) {
-        return 'approved'
+      // Get detailed pull request
+      const fullPullRequest = await github.pullRequests.get({owner: repo.owner.login, repo: repo.name, number: pullRequest.number})
+      pullRequest = fullPullRequest.data
+      if (pullRequest.mergeable !== null && pullRequest.mergeable !== undefined && !pullRequest.mergeable) {
+        if (process.env.DRY_RUN_PR_TO_TEST) {
+          robot.log.debug(`pullRequest.mergeable is ${pullRequest.mergeable}, considering as failed`)
+        }
+        return 'failed'
       }
+
+      let state = 'pending'
+      switch (pullRequest.mergeable_state) {
+        case 'clean':
+          state = 'approved'
+          break
+        case 'dirty':
+          state = 'failed'
+          break
+      }
+      if (process.env.DRY_RUN_PR_TO_TEST) {
+        robot.log.debug(`pullRequest.mergeable_state is ${pullRequest.mergeable_state}, considering state as ${state}`)
+      }
+
+      return state
     }
   }
   
@@ -67,36 +87,6 @@ async function getPullRequestReviewStates(github, repo, pullRequest) {
   }
 
   return Array.from(finalReviewsMap.values())
-}
-
-async function isStatusGreen(github, robot, repo, pullRequest) {
-  // Accumulate all the statuses by chronological order and check if we have a green light
-  var finalStatesMap = new Map()
-  const ghstatuses = await github.paginate(
-    github.repos.getStatuses({owner: repo.owner.login, repo: repo.name, ref: pullRequest.head.sha}),
-    res => res.data)
-  var sortedStatuses = Array.from(ghstatuses).sort((a, b) => {
-    if (a.updated_at < b.updated_at) {
-      return -1
-    }
-    if (a.updated_at > b.updated_at) {
-      return 1
-    }
-    
-    // dates must be equal
-    return 0
-  })
-  for (var status of sortedStatuses) {
-    finalStatesMap.set(status.context, status.state)
-  }
-  var finalStates = Array.from(finalStatesMap.values())
-  const statusStates = finalStates.filter(state => state === 'success')
-
-  if (process.env.DRY_RUN_PR_TO_TEST) {
-    robot.log.debug(finalStates)
-  }
-  
-  return statusStates.length == finalStates.length
 }
 
 async function getProjectFromName(github, ownerName, repoName, projectBoardName) {
@@ -194,12 +184,17 @@ async function assignPullRequestToCorrectColumn(github, robot, repo, pullRequest
     robot.log.error(`Couldn't calculate the PR approval state: ${err}`, ownerName, repoName, prNumber)
   }
   
-  if (state === 'approved') {
-    srcColumn = reviewColumn
-    dstColumn = testColumn
-  } else {
-    srcColumn = testColumn
-    dstColumn = reviewColumn
+  switch (state) {
+    case 'approved':
+      srcColumn = reviewColumn
+      dstColumn = testColumn
+      break;
+    case 'failed':
+      srcColumn = testColumn
+      dstColumn = reviewColumn
+      break;
+    default:
+      return;
   }
   
   robot.log.debug(`assignPullRequestToTest - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}. PR should be in ${dstColumn.name} column`)
