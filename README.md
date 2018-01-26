@@ -15,6 +15,7 @@ Right now the bot has two sets of capabilities:
 
 - Doing background management in GitHub:
   - Assign new PRs to the `Pipeline for QA` project board (`REVIEW` column).
+  - Move existing PRs to the correct `Pipeline for QA` project board column (`REVIEW`/`IN TEST`) depending on whether or not the required conditions are met (is mergeable, at least two reviewers have approved and there is no request for changes).
   - Assign issues that are labeled `bounty-awaiting-approval` to the `Status SOB Swarm` project board (`bounty-awaiting-approval` column).
   - Welcome users who post their first PR in a project.
   - Checks if all commits are GPG-signed and sets the PR status accordingly.
