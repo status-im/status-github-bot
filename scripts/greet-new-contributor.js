@@ -10,56 +10,59 @@
 // Author:
 //   PombeirP
 
-const getConfig = require('probot-config')
+// const getConfig = require('probot-config')
 const defaultConfig = require('../lib/config')
 const Slack = require('probot-slack-status')
 
 let slackClient = null
 
-module.exports = function(robot) {
+module.exports = (robot) => {
   // robot.on('slack.connected', ({ slack }) => {
   Slack(robot, (slack) => {
-    robot.log.trace("Connected, assigned slackClient")
+    robot.log.trace('Connected, assigned slackClient')
     slackClient = slack
   })
-  
+
   robot.on('pull_request.opened', async context => {
     // Make sure we don't listen to our own messages
     if (context.isBot) { return }
-    
+
     // A new PR was opened
     await greetNewContributor(context, robot)
   })
 }
 
-async function greetNewContributor(context, robot) {
+async function greetNewContributor (context, robot) {
   const payload = context.payload
   const github = context.github
-  //const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  // const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const config = defaultConfig(robot, '.github/github-bot.yml')
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
   const prNumber = payload.pull_request.number
-  
-  if (!config['welcome-bot']) {
-    return;
+
+  const welcomeBotConfig = config['welcome-bot']
+  if (!welcomeBotConfig) {
+    return
   }
-  
+
   robot.log(`greetNewContributor - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
-  
+
   try {
-    ghissues = await github.issues.getForRepo({
+    let ghissues = await github.issues.getForRepo({
       owner: ownerName,
       repo: repoName,
       state: 'all',
       creator: payload.pull_request.user.login
     })
-    
+
     const userPullRequests = ghissues.data.filter(issue => issue.pull_request)
     if (userPullRequests.length === 1) {
       try {
-        const welcomeMessage = config['welcome-bot'].message
-        if (!process.env.DRY_RUN) {
+        const welcomeMessage = welcomeBotConfig.message
+        if (process.env.DRY_RUN) {
+          robot.log('Would have created comment in GHI', ownerName, repoName, prNumber, welcomeMessage)
+        } else {
           await github.issues.createComment({
             owner: ownerName,
             repo: repoName,
@@ -67,7 +70,7 @@ async function greetNewContributor(context, robot) {
             body: welcomeMessage
           })
         }
-        
+
         // Send message to Slack
         const slackHelper = require('../lib/slack')
         slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoName} repo\n${payload.pull_request.html_url}`)
@@ -77,7 +80,7 @@ async function greetNewContributor(context, robot) {
         }
       }
     } else {
-      robot.log.debug("This is not the user's first PR on the repo, ignoring", ownerName, repoName, payload.pull_request.user.login)
+      robot.log.debug('This is not the user\'s first PR on the repo, ignoring', ownerName, repoName, payload.pull_request.user.login)
     }
   } catch (err) {
     robot.log.error(`Couldn't fetch the user's github issues for repo: ${err}`, ownerName, repoName)

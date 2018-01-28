@@ -10,6 +10,7 @@
     "test": "jest && standard"
   },
   "dependencies": {
+    "eslint": "^4.16.0",
     "probot": "^5.0.0",
     "probot-config": "^0.1.0",
     "probot-gpg-status": "^0.5.4",
@@ -19,6 +20,11 @@
     "wip-bot": "github:gr2m/wip-bot"
   },
   "devDependencies": {
+    "eslint-config-standard": "^11.0.0-beta.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-node": "^5.2.1",
+    "eslint-plugin-promise": "^3.6.0",
+    "eslint-plugin-standard": "^3.0.1",
     "jest": "^22.1.4",
     "smee-client": "^1.0.1",
     "standard": "^10.0.3"
