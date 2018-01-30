@@ -14,6 +14,8 @@ const defaultConfig = require('../lib/config')
 const Slack = require('probot-slack-status')
 
 module.exports = (robot) => {
+  robot.log('Connected to bounty-awaiting-approval-slack-ping')
+
   Slack(robot, (slack) => {
     robot.log.trace('Connected to Slack')
 
@@ -45,14 +47,26 @@ async function notifyCollaborators (context, robot, slackClient) {
     return null
   }
 
-  robot.log(`bountyAwaitingApprovalSlackPing - ${payload.issue.number} was labeled as a bounty awaiting approval. Pinging slack...`)
+  robot.log(`bountyAwaitingApprovalSlackPing - issue #${payload.issue.number} on ${ownerName}/${repoName} was labeled as a bounty awaiting approval. Pinging slack...`)
 
-  // Grab a list of collaborators to this repo
-  const collaborators = await github.repos.getCollaborators({owner: ownerName, repo: repoName})
+  // Grab a list of collaborators to this repo, as an array of login usernames
+  let collaborators = await github.repos.getCollaborators({owner: ownerName, repo: repoName})
+  collaborators = collaborators.data.map(collaboratorObject => collaboratorObject.login)
+
   // Filter down to exclude non-collaborators to this repo
   const slackCollaborators = Object.keys(gitHubToSlackUsernames)
-    .filter(collaborators.includes)
+    .filter(collaborator => collaborators.includes(collaborator))
     .map(gitHubUsername => gitHubToSlackUsernames[gitHubUsername])
+
+  if (process.env.DRY_RUN) {
+    robot.log(
+    `Would have sent a message on Slack to ${config.slack.notification.room} saying: \n` +
+    `New bounty awaiting approval: [#${payload.issue.number} - ${payload.issue.title}](${payload.issue.html_url})
+@${slackCollaborators.join(', @')}`
+    )
+
+    return null
+  }
 
   // Send message to Slack
   const slackHelper = require('../lib/slack')
