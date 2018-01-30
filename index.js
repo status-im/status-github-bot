@@ -5,7 +5,7 @@ module.exports = (robot) => {
   require('./scripts/assign-approved-pr-to-test')(robot)
   require('./scripts/assign-to-bounty-awaiting-for-approval')(robot)
   require('./scripts/greet-new-contributor')(robot)
-  require('./scripts/unconfirmed-bounty-slack-ping')(robot)
+  require('./scripts/bounty-awaiting-approval-slack-ping')(robot)
 
   // For more information on building apps:
   // https://probot.github.io/docs/
