@@ -131,20 +131,24 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     } else {
       try {
         ghcard = await getProjectCardForIssue(github, column.id, payload.issue.url)
-        await github.projects.deleteProjectCard({id: ghcard.id})
-        robot.log(`Deleted card: ${ghcard.url}`, ghcard.id)
+        if (ghcard) {
+          await github.projects.deleteProjectCard({id: ghcard.id})
+          robot.log(`Deleted card: ${ghcard.url}`, ghcard.id)
+        }
       } catch (err) {
         robot.log.error(`Couldn't delete project card for the issue: ${err}`, column.id, payload.issue.id)
       }
     }
   }
 
-  // Send message to Slack
-  const slackHelper = require('../lib/slack')
-  if (assign) {
-    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
-  } else {
-    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
+  if (!process.env.DRY_RUN_BOUNTY_APPROVAL) {
+    // Send message to Slack
+    const slackHelper = require('../lib/slack')
+    if (assign) {
+      slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
+    } else {
+      slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
+    }
   }
 }
 
