@@ -8,6 +8,10 @@ bounty-project-board:
   label-name: 'bounty-awaiting-approval'
   awaiting-approval-column-name: 'bounty-awaiting-approval'
 
+bounty-awaiting-approval-slack-ping:
+  label-name: 'bounty-awaiting-approval'
+  collaboratorsSlackUsernames: './collaborators.yml'
+
 welcome-bot:
   message: 'Thanks for making your first PR here!'
 
