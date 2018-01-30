@@ -16,6 +16,7 @@ module.exports = async (robot) => {
   robot.log.info('Slack user ID cache populated, loading remainder of scripts')
 
   // Add scripts which require using the Slack/GitHub cache after this comment
+  require('./bot_scripts/bounty-awaiting-approval-slack-ping')(robot, SlackGitHubCacheBuilder.getSlackUsernameFromGitHubId)
 
   // For more information on building apps:
   // https://probot.github.io/docs/
