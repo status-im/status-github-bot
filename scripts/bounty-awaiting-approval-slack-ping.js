@@ -10,7 +10,6 @@
 // Author:
 //   Max Tyrrell (ImFeelingDucky/mac/yung_mac)
 
-const getConfig = require('probot-config')
 const defaultConfig = require('../lib/config')
 const Slack = require('probot-slack-status')
 
@@ -22,16 +21,16 @@ module.exports = (robot) => {
   })
 }
 
-function checkForNewBounties(robot, slackClient) {
-  robot.on('issues.labeled', context => {
+function checkForNewBounties (robot, slackClient) {
+  robot.on('issues.labeled', async context => {
     // Make sure we don't listen to our own messages
     if (context.isBot) return null
 
-    notifyCollaborators(context, robot, slackClient)
+    await notifyCollaborators(context, robot, slackClient)
   })
 }
 
-function notifyCollaborators(context, robot) {
+async function notifyCollaborators (context, robot, slackClient) {
   const { github, payload } = context
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
