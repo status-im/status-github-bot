@@ -11,6 +11,7 @@
 //   PombeirP
 
 // const getConfig = require('probot-config')
+const slackHelper = require('../lib/slack')
 const defaultConfig = require('../lib/config')
 const Slack = require('probot-slack-status')
 
@@ -143,7 +144,6 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
   if (!process.env.DRY_RUN_BOUNTY_APPROVAL) {
     // Send message to Slack
-    const slackHelper = require('../lib/slack')
     if (assign) {
       slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
     } else {
