@@ -17,10 +17,10 @@ const slackHelper = require('../lib/slack')
 module.exports = (robot) => {
   robot.log('Connected to bounty-awaiting-approval-slack-ping')
 
-    registerForNewBounties(robot, undefined)
   Slack(robot, (slack) => {
     robot.log.trace('Connected to Slack')
 
+    registerForNewBounties(robot, slack)
   })
 }
 
