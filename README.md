@@ -42,6 +42,12 @@ After this you can start the bot by running:
 npm start
 ```
 
+## Creating the Slack Bot Integration
+
+1. Go to https://my.slack.com/services/new/bot
+2. Add a bot integration
+3. Note the bot token starting with `xoxb-` and put it into `.env`
+
 ## Creating the bot GitHub App
 
 This bot is meant to be packaged as a GitHub App. There are two steps to it: creating the app, and installing the app. Creating a GitHub App only needs to be done once and the app can be made public to be reused for any number of repositories and organizations.
@@ -71,6 +77,7 @@ See the official [docs for deployment](https://probot.github.io/docs/deployment/
             - [x] Check the box for **Project for organization projects** events
         - Single File - **Read-only**
             - Path: `.github/github-bot.yml`
+    1. 🔍  Verify that you have **ticked 8 boxes**.
     1. Generate a private key pass and save it.
 1. Installing the bot service:
     1. Deploy the bot to the cloud.
