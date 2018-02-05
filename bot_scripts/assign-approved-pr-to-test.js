@@ -240,6 +240,10 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
     try {
       robot.log.trace(`Found card in source column ${srcColumn.name}`, existingGHCard.id, srcColumn.id)
 
+      if (dstColumn === srcColumn) {
+        return
+      }
+
       if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
         robot.log.info(`Would have moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
       } else {
