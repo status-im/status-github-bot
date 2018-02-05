@@ -75,7 +75,7 @@ async function getReviewApprovalState (github, robot, repo, pullRequest) {
 async function getPullRequestReviewStates (github, repo, pullRequest) {
   var finalReviewsMap = new Map()
   const ghreviews = await github.paginate(
-    github.pullRequests.getReviews({owner: repo.owner.login, repo: repo.name, number: pullRequest.number}),
+    github.pullRequests.getReviews({owner: repo.owner.login, repo: repo.name, number: pullRequest.number, per_page: 100}),
     res => res.data)
   for (var review of ghreviews) {
     switch (review.state) {
@@ -147,24 +147,25 @@ async function checkOpenPullRequests (robot, context) {
   let ghcolumns
   try {
     ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
+    ghcolumns = ghcolumns.data
   } catch (err) {
     robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
     return
   }
 
-  const contributorColumn = ghcolumns.data.find(c => c.name === contributorColumnName)
+  const contributorColumn = ghcolumns.find(c => c.name === contributorColumnName)
   if (!contributorColumn) {
     robot.log.error(`Couldn't find ${contributorColumnName} column in project ${project.name}`)
     return
   }
 
-  const reviewColumn = ghcolumns.data.find(c => c.name === reviewColumnName)
+  const reviewColumn = ghcolumns.find(c => c.name === reviewColumnName)
   if (!reviewColumn) {
     robot.log.error(`Couldn't find ${reviewColumnName} column in project ${project.name}`)
     return
   }
 
-  const testColumn = ghcolumns.data.find(c => c.name === testColumnName)
+  const testColumn = ghcolumns.find(c => c.name === testColumnName)
   if (!testColumn) {
     robot.log.error(`Couldn't find ${testColumnName} column in project ${project.name}`)
     return
@@ -175,7 +176,7 @@ async function checkOpenPullRequests (robot, context) {
   try {
     // Gather all open PRs in this repo
     const allPullRequests = await github.paginate(
-      github.pullRequests.getAll({owner: ownerName, repo: repoName}),
+      github.pullRequests.getAll({owner: ownerName, repo: repoName, per_page: 100}),
       res => res.data
     )
 
