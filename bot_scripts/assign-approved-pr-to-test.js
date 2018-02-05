@@ -1,6 +1,6 @@
 // Description:
-//   Script that listens to GitHub pull reviews
-//   and assigns the PR to TO TEST column on the 'Pipeline for QA' project
+//   Script that periodically checks to GitHub pull request reviews
+//   and assigns the PR to CONTRIBUTOR/REVIEW/TO TEST columns on the 'Pipeline for QA' project
 //
 // Dependencies:
 //   github: "^13.1.0"
@@ -28,60 +28,6 @@ module.exports = robot => {
 
   createScheduler(robot, { interval: 10 * 60 * 1000 })
   robot.on('schedule.repository', context => checkOpenPullRequests(robot, context))
-}
-
-async function getReviewApprovalState (github, robot, repo, pullRequest) {
-  const threshold = 2 // Minimum number of approvers
-
-  var finalReviews = await getPullRequestReviewStates(github, repo, pullRequest)
-  robot.log.debug(finalReviews)
-
-  const approvedReviews = finalReviews.filter(reviewState => reviewState === 'APPROVED')
-  if (approvedReviews.length >= threshold) {
-    const reviewsWithChangesRequested = finalReviews.filter(reviewState => reviewState === 'CHANGES_REQUESTED')
-    if (reviewsWithChangesRequested.length === 0) {
-      // Get detailed pull request
-      const fullPullRequestPayload = await github.pullRequests.get({owner: repo.owner.login, repo: repo.name, number: pullRequest.number})
-      pullRequest = fullPullRequestPayload.data
-      if (pullRequest.mergeable !== null && pullRequest.mergeable !== undefined && !pullRequest.mergeable) {
-        robot.log.debug(`pullRequest.mergeable is ${pullRequest.mergeable}, considering as failed`)
-        return 'failed'
-      }
-
-      let state = 'pending'
-      switch (pullRequest.mergeable_state) {
-        case 'clean':
-          state = 'approved'
-          break
-        case 'dirty':
-          state = 'failed'
-          break
-      }
-      robot.log.debug(`pullRequest.mergeable_state is ${pullRequest.mergeable_state}, considering state as ${state}`)
-
-      return state
-    }
-  }
-
-  return 'pending'
-}
-
-async function getPullRequestReviewStates (github, repo, pullRequest) {
-  var finalReviewsMap = new Map()
-  const ghreviews = await github.paginate(
-    github.pullRequests.getReviews({owner: repo.owner.login, repo: repo.name, number: pullRequest.number, per_page: 100}),
-    res => res.data)
-  for (var review of ghreviews) {
-    switch (review.state) {
-      case 'APPROVED':
-      case 'CHANGES_REQUESTED':
-      case 'PENDING':
-        finalReviewsMap.set(review.user.id, review.state)
-        break
-    }
-  }
-
-  return Array.from(finalReviewsMap.values())
 }
 
 async function getProjectFromName (github, ownerName, repoName, projectBoardName) {
@@ -187,6 +133,66 @@ async function checkOpenPullRequests (robot, context) {
   }
 }
 
+async function getPullRequestReviewStates (github, repo, pullRequest) {
+  var finalReviewsMap = new Map()
+  const ghreviews = await github.paginate(
+    github.pullRequests.getReviews({owner: repo.owner.login, repo: repo.name, number: pullRequest.number, per_page: 100}),
+    res => res.data)
+  for (var review of ghreviews) {
+    switch (review.state) {
+      case 'APPROVED':
+      case 'CHANGES_REQUESTED':
+      case 'PENDING':
+        finalReviewsMap.set(review.user.id, review.state)
+        break
+    }
+  }
+
+  return Array.from(finalReviewsMap.values())
+}
+
+async function getReviewApprovalState (github, robot, repo, pullRequest) {
+  // Get detailed pull request
+  const fullPullRequestPayload = await github.pullRequests.get({owner: repo.owner.login, repo: repo.name, number: pullRequest.number})
+  pullRequest = fullPullRequestPayload.data
+  if (pullRequest.mergeable !== null && pullRequest.mergeable !== undefined && !pullRequest.mergeable) {
+    robot.log.debug(`pullRequest.mergeable is ${pullRequest.mergeable}, considering as failed`)
+    return 'failed'
+  }
+
+  let state
+  switch (pullRequest.mergeable_state) {
+    case 'clean':
+      state = 'approved'
+      break
+    case 'dirty':
+      state = 'failed'
+      break
+  }
+  robot.log.debug(`pullRequest.mergeable_state is ${pullRequest.mergeable_state}, considering state as ${state}`)
+
+  if (state !== 'approved') {
+    return state
+  }
+
+  const threshold = 2 // Minimum number of approvers
+
+  var finalReviews = await getPullRequestReviewStates(github, repo, pullRequest)
+  robot.log.debug(finalReviews)
+
+  const approvedReviews = finalReviews.filter(reviewState => reviewState === 'APPROVED')
+  if (approvedReviews.length >= threshold) {
+    const reviewsWithChangesRequested = finalReviews.filter(reviewState => reviewState === 'CHANGES_REQUESTED')
+    if (reviewsWithChangesRequested.length === 0) {
+      return 'approved'
+    }
+
+    return 'changes_requested'
+  }
+
+  return 'awaiting_reviewers'
+}
+
 async function assignPullRequestToCorrectColumn (github, robot, repo, pullRequest, contributorColumn, reviewColumn, testColumn, room) {
   const ownerName = repo.owner.login
   const repoName = repo.name
@@ -201,17 +207,21 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
 
   let srcColumns, dstColumn
   switch (state) {
-    case 'approved':
-      srcColumns = [contributorColumn, reviewColumn]
-      dstColumn = testColumn
+    case 'awaiting_reviewers':
+      srcColumns = [contributorColumn, testColumn]
+      dstColumn = reviewColumn
+      break
+    case 'changes_requested':
+      srcColumns = [reviewColumn, testColumn]
+      dstColumn = contributorColumn
       break
     case 'failed':
       srcColumns = [reviewColumn, testColumn]
-      dstColumn = reviewColumn
-      break
-    case 'pending':
-      srcColumns = [testColumn]
       dstColumn = contributorColumn
+      break
+    case 'approved':
+      srcColumns = [contributorColumn, reviewColumn]
+      dstColumn = testColumn
       break
     default:
       return
@@ -249,9 +259,9 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
       } else {
         // Found in the source column, let's move it to the destination column
         await github.projects.moveProjectCard({id: existingGHCard.id, position: 'bottom', column_id: dstColumn.id})
-      }
 
-      robot.log.info(`Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
+      }
 
       slackHelper.sendMessage(robot, slackClient, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
     } catch (err) {
