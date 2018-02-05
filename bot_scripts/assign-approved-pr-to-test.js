@@ -34,9 +34,7 @@ async function getReviewApprovalState (github, robot, repo, pullRequest) {
   const threshold = 2 // Minimum number of approvers
 
   var finalReviews = await getPullRequestReviewStates(github, repo, pullRequest)
-  if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
-    robot.log.debug(finalReviews)
-  }
+  robot.log.debug(finalReviews)
 
   const approvedReviews = finalReviews.filter(reviewState => reviewState === 'APPROVED')
   if (approvedReviews.length >= threshold) {
@@ -46,9 +44,7 @@ async function getReviewApprovalState (github, robot, repo, pullRequest) {
       const fullPullRequestPayload = await github.pullRequests.get({owner: repo.owner.login, repo: repo.name, number: pullRequest.number})
       pullRequest = fullPullRequestPayload.data
       if (pullRequest.mergeable !== null && pullRequest.mergeable !== undefined && !pullRequest.mergeable) {
-        if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
-          robot.log.debug(`pullRequest.mergeable is ${pullRequest.mergeable}, considering as failed`)
-        }
+        robot.log.debug(`pullRequest.mergeable is ${pullRequest.mergeable}, considering as failed`)
         return 'failed'
       }
 
@@ -61,9 +57,7 @@ async function getReviewApprovalState (github, robot, repo, pullRequest) {
           state = 'failed'
           break
       }
-      if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
-        robot.log.debug(`pullRequest.mergeable_state is ${pullRequest.mergeable_state}, considering state as ${state}`)
-      }
+      robot.log.debug(`pullRequest.mergeable_state is ${pullRequest.mergeable_state}, considering state as ${state}`)
 
       return state
     }
