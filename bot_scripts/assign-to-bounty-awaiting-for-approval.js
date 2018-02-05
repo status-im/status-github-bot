@@ -72,13 +72,13 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   try {
     const orgName = ownerName
 
-    const ghprojects = await github.projects.getOrgProjects({
+    const ghprojectsPayload = await github.projects.getOrgProjects({
       org: orgName,
       state: 'open'
     })
 
     // Find 'Status SOB Swarm' project
-    const project = ghprojects.data.find(p => p.name === projectBoardName)
+    const project = ghprojectsPayload.data.find(p => p.name === projectBoardName)
     if (!project) {
       robot.log.error(`Couldn't find project ${projectBoardName} in ${orgName} org`)
       return
@@ -88,9 +88,9 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
     // Fetch bounty-awaiting-approval column ID
     try {
-      const ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
+      const ghcolumnsPayload = await github.projects.getProjectColumns({ project_id: project.id })
 
-      column = ghcolumns.data.find(c => c.name === approvalColumnName)
+      column = ghcolumnsPayload.data.find(c => c.name === approvalColumnName)
       if (!column) {
         robot.log.error(`Couldn't find ${approvalColumnName} column in project ${project.name}`)
         return
@@ -106,7 +106,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     return
   }
 
-  let ghcard = null
+  let ghcardPayload = null
   if (process.env.DRY_RUN) {
     if (assign) {
       robot.log.info(`Would have created card for issue`, column.id, payload.issue.id)
@@ -117,12 +117,12 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     if (assign) {
       try {
         // Create project card for the issue in the bounty-awaiting-approval column
-        ghcard = await github.projects.createProjectCard({
+        ghcardPayload = await github.projects.createProjectCard({
           column_id: column.id,
           content_type: 'Issue',
           content_id: payload.issue.id
         })
-        ghcard = ghcard.data
+        const ghcard = ghcardPayload.data
 
         robot.log(`Created card: ${ghcard.url}`, ghcard.id)
       } catch (err) {
@@ -130,7 +130,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
       }
     } else {
       try {
-        ghcard = await getProjectCardForIssue(github, column.id, payload.issue.url)
+        const ghcard = await getProjectCardForIssue(github, column.id, payload.issue.url)
         if (ghcard) {
           await github.projects.deleteProjectCard({id: ghcard.id})
           robot.log(`Deleted card: ${ghcard.url}`, ghcard.id)
@@ -153,8 +153,8 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 }
 
 async function getProjectCardForIssue (github, columnId, issueUrl) {
-  const ghcards = await github.projects.getProjectCards({column_id: columnId})
-  const ghcard = ghcards.data.find(c => c.content_url === issueUrl)
+  const ghcardsPayload = await github.projects.getProjectCards({column_id: columnId})
+  const ghcard = ghcardsPayload.data.find(c => c.content_url === issueUrl)
 
   return ghcard
 }

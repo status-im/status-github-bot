@@ -55,14 +55,14 @@ async function assignPullRequestToReview (context, robot) {
   const projectBoardName = projectBoardConfig.name
   const reviewColumnName = projectBoardConfig['review-column-name']
   try {
-    const ghprojects = await github.projects.getRepoProjects({
+    const ghprojectsPayload = await github.projects.getRepoProjects({
       owner: ownerName,
       repo: repoName,
       state: 'open'
     })
 
     // Find 'Pipeline for QA' project
-    const project = ghprojects.data.find(p => p.name === projectBoardName)
+    const project = ghprojectsPayload.data.find(p => p.name === projectBoardName)
     if (!project) {
       robot.log.error(`Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`)
       return
@@ -72,9 +72,9 @@ async function assignPullRequestToReview (context, robot) {
 
     // Fetch REVIEW column ID
     try {
-      const ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
+      const ghcolumnsPayload = await github.projects.getProjectColumns({ project_id: project.id })
 
-      column = ghcolumns.data.find(c => c.name === reviewColumnName)
+      column = ghcolumnsPayload.data.find(c => c.name === reviewColumnName)
       if (!column) {
         robot.log.error(`Couldn't find ${reviewColumnName} column in project ${project.name}`)
         return
@@ -95,13 +95,13 @@ async function assignPullRequestToReview (context, robot) {
     if (process.env.DRY_RUN) {
       robot.log.debug('Would have created card', column.id, payload.pull_request.id)
     } else {
-      const ghcard = await github.projects.createProjectCard({
+      const ghcardPayload = await github.projects.createProjectCard({
         column_id: column.id,
         content_type: 'PullRequest',
         content_id: payload.pull_request.id
       })
 
-      robot.log.debug(`Created card: ${ghcard.data.url}`, ghcard.data.id)
+      robot.log.debug(`Created card: ${ghcardPayload.data.url}`, ghcardPayload.data.id)
     }
 
     // Send message to Slack

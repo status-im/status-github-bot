@@ -43,8 +43,8 @@ async function getReviewApprovalState (github, robot, repo, pullRequest) {
     const reviewsWithChangesRequested = finalReviews.filter(reviewState => reviewState === 'CHANGES_REQUESTED')
     if (reviewsWithChangesRequested.length === 0) {
       // Get detailed pull request
-      const fullPullRequest = await github.pullRequests.get({owner: repo.owner.login, repo: repo.name, number: pullRequest.number})
-      pullRequest = fullPullRequest.data
+      const fullPullRequestPayload = await github.pullRequests.get({owner: repo.owner.login, repo: repo.name, number: pullRequest.number})
+      pullRequest = fullPullRequestPayload.data
       if (pullRequest.mergeable !== null && pullRequest.mergeable !== undefined && !pullRequest.mergeable) {
         if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
           robot.log.debug(`pullRequest.mergeable is ${pullRequest.mergeable}, considering as failed`)
@@ -91,18 +91,18 @@ async function getPullRequestReviewStates (github, repo, pullRequest) {
 }
 
 async function getProjectFromName (github, ownerName, repoName, projectBoardName) {
-  const ghprojects = await github.projects.getRepoProjects({
+  const ghprojectsPayload = await github.projects.getRepoProjects({
     owner: ownerName,
     repo: repoName,
     state: 'open'
   })
 
-  return ghprojects.data.find(p => p.name === projectBoardName)
+  return ghprojectsPayload.data.find(p => p.name === projectBoardName)
 }
 
 async function getProjectCardForPullRequest (github, columnId, pullRequestUrl) {
-  const ghcards = await github.projects.getProjectCards({column_id: columnId})
-  const ghcard = ghcards.data.find(c => c.content_url === pullRequestUrl)
+  const ghcardsPayload = await github.projects.getProjectCards({column_id: columnId})
+  const ghcard = ghcardsPayload.data.find(c => c.content_url === pullRequestUrl)
 
   return ghcard
 }
@@ -146,8 +146,8 @@ async function checkOpenPullRequests (robot, context) {
   // Fetch column IDs
   let ghcolumns
   try {
-    ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
-    ghcolumns = ghcolumns.data
+    const ghcolumnsPayload = await github.projects.getProjectColumns({ project_id: project.id })
+    ghcolumns = ghcolumnsPayload.data
   } catch (err) {
     robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
     return
@@ -226,12 +226,12 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
   robot.log.debug(`assignPullRequestToTest - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}. PR should be in ${dstColumn.name} column`)
 
   // Look for PR card in source column(s)
-  let ghcard = null
+  let existingGHCard = null
   let srcColumn = null
   for (const c of srcColumns) {
     try {
-      ghcard = await getProjectCardForPullRequest(github, c.id, pullRequest.issue_url)
-      if (ghcard) {
+      existingGHCard = await getProjectCardForPullRequest(github, c.id, pullRequest.issue_url)
+      if (existingGHCard) {
         srcColumn = c
         break
       }
@@ -241,19 +241,19 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
     }
   }
 
-  if (ghcard) {
+  if (existingGHCard) {
     // Move PR card to the destination column
     try {
-      robot.log.trace(`Found card in source column ${srcColumn.name}`, ghcard.id, srcColumn.id)
+      robot.log.trace(`Found card in source column ${srcColumn.name}`, existingGHCard.id, srcColumn.id)
 
       if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
-        robot.log.info(`Would have moved card ${ghcard.id} to ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`Would have moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
       } else {
         // Found in the source column, let's move it to the destination column
-        await github.projects.moveProjectCard({id: ghcard.id, position: 'bottom', column_id: dstColumn.id})
+        await github.projects.moveProjectCard({id: existingGHCard.id, position: 'bottom', column_id: dstColumn.id})
       }
 
-      robot.log.info(`Moved card ${ghcard.id} to ${dstColumn.name} for PR #${prNumber}`)
+      robot.log.info(`Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
 
       slackHelper.sendMessage(robot, slackClient, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
     } catch (err) {
@@ -266,9 +266,9 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
 
       // Look for PR card in destination column
       try {
-        ghcard = await getProjectCardForPullRequest(github, dstColumn.id, pullRequest.issue_url)
-        if (ghcard) {
-          robot.log.trace(`Found card in target column, ignoring`, ghcard.id, dstColumn.id)
+        const existingGHCard = await getProjectCardForPullRequest(github, dstColumn.id, pullRequest.issue_url)
+        if (existingGHCard) {
+          robot.log.trace(`Found card in target column, ignoring`, existingGHCard.id, dstColumn.id)
           return
         }
       } catch (err) {
@@ -280,14 +280,13 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
         robot.log.info(`Would have created card in ${dstColumn.name} column for PR #${prNumber}`)
       } else {
         // It wasn't in either the source nor the destination columns, let's create a new card for it in the destination column
-        ghcard = await github.projects.createProjectCard({
+        const ghcardPayload = await github.projects.createProjectCard({
           column_id: dstColumn.id,
           content_type: 'PullRequest',
           content_id: pullRequest.id
         })
-        ghcard = ghcard.data
 
-        robot.log.info(`Created card ${ghcard.id} in ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`Created card ${ghcardPayload.data.id} in ${dstColumn.name} for PR #${prNumber}`)
       }
     } catch (err) {
       // We normally arrive here because there is already a card for the PR in another column
