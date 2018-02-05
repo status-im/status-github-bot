@@ -25,6 +25,23 @@ Right now the bot has two sets of capabilities:
 
 The project board names, column names, welcome message and other values are stored in the `.github/github-bot.yml` file. It can be overriden for each specific repository by adding a file in the same path on the respective repository (see [probot-config](https://github.com/getsentry/probot-config)).
 
+## Development
+
+To get your environment set up go through the following steps:
+
+1. Run `npm install`
+2. Populate `.env`
+
+   ```sh
+   cp .env.example .env
+   # edit .env file to contain proper config
+   ```
+
+After this you can start the bot by running:
+```sh
+npm start
+```
+
 ## Creating the bot GitHub App
 
 This bot is meant to be packaged as a GitHub App. There are two steps to it: creating the app, and installing the app. Creating a GitHub App only needs to be done once and the app can be made public to be reused for any number of repositories and organizations.
