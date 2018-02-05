@@ -49,7 +49,7 @@ async function greetNewContributor (context, robot) {
   robot.log(`greetNewContributor - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
 
   try {
-    let ghissues = await github.issues.getForRepo({
+    const ghissues = await github.issues.getForRepo({
       owner: ownerName,
       repo: repoName,
       state: 'all',

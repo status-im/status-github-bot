@@ -15,6 +15,7 @@
 const defaultConfig = require('../lib/config')
 const createScheduler = require('probot-scheduler')
 const Slack = require('probot-slack-status')
+const slackHelper = require('../lib/slack')
 
 let slackClient = null
 
@@ -90,7 +91,7 @@ async function getPullRequestReviewStates (github, repo, pullRequest) {
 }
 
 async function getProjectFromName (github, ownerName, repoName, projectBoardName) {
-  let ghprojects = await github.projects.getRepoProjects({
+  const ghprojects = await github.projects.getRepoProjects({
     owner: ownerName,
     repo: repoName,
     state: 'open'
@@ -101,7 +102,7 @@ async function getProjectFromName (github, ownerName, repoName, projectBoardName
 
 async function getProjectCardForPullRequest (github, columnId, pullRequestUrl) {
   const ghcards = await github.projects.getProjectCards({column_id: columnId})
-  let ghcard = ghcards.data.find(c => c.content_url === pullRequestUrl)
+  const ghcard = ghcards.data.find(c => c.content_url === pullRequestUrl)
 
   return ghcard
 }
@@ -120,61 +121,78 @@ async function checkOpenPullRequests (robot, context) {
     return
   }
 
+  const contributorColumnName = projectBoardConfig['contributor-column-name']
   const reviewColumnName = projectBoardConfig['review-column-name']
   const testColumnName = projectBoardConfig['test-column-name']
 
   // Fetch repo projects
   // TODO: The repo project and project column info should be cached
   // in order to improve performance and reduce roundtrips
+  let project
   try {
     // Find 'Pipeline for QA' project
-    let project = await getProjectFromName(github, ownerName, repoName, projectBoardConfig.name)
+    project = await getProjectFromName(github, ownerName, repoName, projectBoardConfig.name)
     if (!project) {
       robot.log.error(`Couldn't find project ${projectBoardConfig.name} in repo ${ownerName}/${repoName}`)
       return
     }
 
     robot.log.debug(`Fetched ${project.name} project (${project.id})`)
+  } catch (err) {
+    robot.log.error(`Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    return
+  }
 
-    // Fetch column IDs
-    let ghcolumns = null
-    try {
-      ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
-    } catch (err) {
-      robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
-      return
-    }
+  // Fetch column IDs
+  let ghcolumns
+  try {
+    ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
+  } catch (err) {
+    robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
+    return
+  }
 
-    const reviewColumn = ghcolumns.data.find(c => c.name === reviewColumnName)
-    if (!reviewColumn) {
-      robot.log.error(`Couldn't find ${reviewColumnName} column in project ${project.name}`)
-      return
-    }
+  const contributorColumn = ghcolumns.data.find(c => c.name === contributorColumnName)
+  if (!contributorColumn) {
+    robot.log.error(`Couldn't find ${contributorColumnName} column in project ${project.name}`)
+    return
+  }
 
-    const testColumn = ghcolumns.data.find(c => c.name === testColumnName)
-    if (!testColumn) {
-      robot.log.error(`Couldn't find ${testColumnName} column in project ${project.name}`)
-      return
-    }
+  const reviewColumn = ghcolumns.data.find(c => c.name === reviewColumnName)
+  if (!reviewColumn) {
+    robot.log.error(`Couldn't find ${reviewColumnName} column in project ${project.name}`)
+    return
+  }
 
-    robot.log.debug(`Fetched ${reviewColumn.name} (${reviewColumn.id}), ${testColumn.name} (${testColumn.id}) columns`)
+  const testColumn = ghcolumns.data.find(c => c.name === testColumnName)
+  if (!testColumn) {
+    robot.log.error(`Couldn't find ${testColumnName} column in project ${project.name}`)
+    return
+  }
 
+  robot.log.debug(`Fetched ${contributorColumn.name} (${contributorColumn.id}), ${reviewColumn.name} (${reviewColumn.id}), ${testColumn.name} (${testColumn.id}) columns`)
+
+  try {
     // Gather all open PRs in this repo
     const allPullRequests = await github.paginate(
       github.pullRequests.getAll({owner: ownerName, repo: repoName}),
       res => res.data
     )
 
-    // And make sure they are assigned to the correct prject column
+    // And make sure they are assigned to the correct project column
     for (var pullRequest of allPullRequests) {
-      await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, reviewColumn, testColumn, config.slack.notification.room)
+      try {
+        await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, contributorColumn, reviewColumn, testColumn, config.slack.notification.room)
+      } catch (err) {
+        robot.log.error(`Unhandled exception while processing PR: ${err}`, ownerName, repoName)
+      }
     }
   } catch (err) {
-    robot.log.error(`Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`Couldn't fetch the github pull requests for repo: ${err}`, ownerName, repoName)
   }
 }
 
-async function assignPullRequestToCorrectColumn (github, robot, repo, pullRequest, reviewColumn, testColumn, room) {
+async function assignPullRequestToCorrectColumn (github, robot, repo, pullRequest, contributorColumn, reviewColumn, testColumn, room) {
   const ownerName = repo.owner.login
   const repoName = repo.name
   const prNumber = pullRequest.number
@@ -186,15 +204,19 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
     robot.log.error(`Couldn't calculate the PR approval state: ${err}`, ownerName, repoName, prNumber)
   }
 
-  let srcColumn, dstColumn
+  let srcColumns, dstColumn
   switch (state) {
     case 'approved':
-      srcColumn = reviewColumn
+      srcColumns = [reviewColumn]
       dstColumn = testColumn
       break
     case 'failed':
-      srcColumn = testColumn
+      srcColumns = [reviewColumn, testColumn]
       dstColumn = reviewColumn
+      break
+    case 'pending':
+      srcColumns = [testColumn]
+      dstColumn = contributorColumn
       break
     default:
       return
@@ -202,19 +224,26 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
 
   robot.log.debug(`assignPullRequestToTest - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}. PR should be in ${dstColumn.name} column`)
 
-  // Look for PR card in source column
+  // Look for PR card in source column(s)
   let ghcard = null
-  try {
-    ghcard = await getProjectCardForPullRequest(github, srcColumn.id, pullRequest.issue_url)
-  } catch (err) {
-    robot.log.error(`Failed to retrieve project card for the PR, aborting: ${err}`, srcColumn.id, pullRequest.issue_url)
-    return
+  let srcColumn = null
+  for (const c of srcColumns) {
+    try {
+      ghcard = await getProjectCardForPullRequest(github, c.id, pullRequest.issue_url)
+      if (ghcard) {
+        srcColumn = c
+        break
+      }
+    } catch (err) {
+      robot.log.error(`Failed to retrieve project card for the PR, aborting: ${err}`, c.id, pullRequest.issue_url)
+      return
+    }
   }
 
   if (ghcard) {
     // Move PR card to the destination column
     try {
-      robot.log.trace(`Found card in source column`, ghcard.id, srcColumn.id)
+      robot.log.trace(`Found card in source column ${srcColumn.name}`, ghcard.id, srcColumn.id)
 
       if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
         robot.log.info(`Would have moved card ${ghcard.id} to ${dstColumn.name} for PR #${prNumber}`)
@@ -224,16 +253,15 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
       }
 
       robot.log.info(`Moved card ${ghcard.id} to ${dstColumn.name} for PR #${prNumber}`)
-    } catch (err) {
-      const slackHelper = require('../lib/slack')
 
+      slackHelper.sendMessage(robot, slackClient, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
+    } catch (err) {
       robot.log.error(`Couldn't move project card for the PR: ${err}`, srcColumn.id, dstColumn.id, pullRequest.id)
       slackHelper.sendMessage(robot, slackClient, room, `I couldn't move the PR to ${dstColumn.name} column :confused:\n${pullRequest.html_url}`)
-      return
     }
   } else {
     try {
-      robot.log.debug(`Didn't find card in source column`, srcColumn.id)
+      robot.log.debug(`Didn't find card in source column(s)`, srcColumns.map(c => c.id))
 
       // Look for PR card in destination column
       try {
@@ -248,7 +276,7 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
       }
 
       if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
-        robot.log.info(`Would have created card ${ghcard.data.id} in ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`Would have created card in ${dstColumn.name} column for PR #${prNumber}`)
       } else {
         // It wasn't in either the source nor the destination columns, let's create a new card for it in the destination column
         ghcard = await github.projects.createProjectCard({
@@ -256,16 +284,13 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
           content_type: 'PullRequest',
           content_id: pullRequest.id
         })
+        ghcard = ghcard.data
 
-        robot.log.info(`Created card ${ghcard.data.id} in ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`Created card ${ghcard.id} in ${dstColumn.name} for PR #${prNumber}`)
       }
     } catch (err) {
       // We normally arrive here because there is already a card for the PR in another column
       robot.log.debug(`Couldn't create project card for the PR: ${err}`, dstColumn.id, pullRequest.id)
-      return
     }
   }
-
-  const slackHelper = require('../lib/slack')
-  slackHelper.sendMessage(robot, slackClient, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
 }

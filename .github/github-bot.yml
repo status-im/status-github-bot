@@ -1,5 +1,6 @@
 project-board:
   name: 'Pipeline for QA'
+  contributor-column-name: 'CONTRIBUTOR'
   review-column-name: 'REVIEW'
   test-column-name: 'TO TEST'
 

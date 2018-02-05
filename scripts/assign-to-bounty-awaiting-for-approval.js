@@ -72,7 +72,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   try {
     const orgName = ownerName
 
-    let ghprojects = await github.projects.getOrgProjects({
+    const ghprojects = await github.projects.getOrgProjects({
       org: orgName,
       state: 'open'
     })
@@ -88,7 +88,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
     // Fetch bounty-awaiting-approval column ID
     try {
-      let ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
+      const ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
 
       column = ghcolumns.data.find(c => c.name === approvalColumnName)
       if (!column) {
@@ -154,7 +154,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
 async function getProjectCardForIssue (github, columnId, issueUrl) {
   const ghcards = await github.projects.getProjectCards({column_id: columnId})
-  let ghcard = ghcards.data.find(c => c.content_url === issueUrl)
+  const ghcard = ghcards.data.find(c => c.content_url === issueUrl)
 
   return ghcard
 }

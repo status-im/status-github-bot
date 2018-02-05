@@ -55,7 +55,7 @@ async function assignPullRequestToReview (context, robot) {
   const projectBoardName = projectBoardConfig.name
   const reviewColumnName = projectBoardConfig['review-column-name']
   try {
-    let ghprojects = await github.projects.getRepoProjects({
+    const ghprojects = await github.projects.getRepoProjects({
       owner: ownerName,
       repo: repoName,
       state: 'open'
@@ -72,7 +72,7 @@ async function assignPullRequestToReview (context, robot) {
 
     // Fetch REVIEW column ID
     try {
-      let ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
+      const ghcolumns = await github.projects.getProjectColumns({ project_id: project.id })
 
       column = ghcolumns.data.find(c => c.name === reviewColumnName)
       if (!column) {
@@ -95,7 +95,7 @@ async function assignPullRequestToReview (context, robot) {
     if (process.env.DRY_RUN) {
       robot.log.debug('Would have created card', column.id, payload.pull_request.id)
     } else {
-      let ghcard = await github.projects.createProjectCard({
+      const ghcard = await github.projects.createProjectCard({
         column_id: column.id,
         content_type: 'PullRequest',
         content_id: payload.pull_request.id
