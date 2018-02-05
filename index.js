@@ -7,10 +7,10 @@ module.exports = async (robot) => {
   var slackGitHubCache = new MemCache({ timeoutDisabled: true })
   var slackCachePromise = SlackGitHubCacheBuilder.build(robot, slackGitHubCache)
 
-  require('./scripts/assign-new-pr-to-review')(robot)
-  require('./scripts/assign-approved-pr-to-test')(robot)
-  require('./scripts/assign-to-bounty-awaiting-for-approval')(robot)
-  require('./scripts/greet-new-contributor')(robot)
+  require('./bot_scripts/assign-new-pr-to-review')(robot)
+  require('./bot_scripts/assign-approved-pr-to-test')(robot)
+  require('./bot_scripts/assign-to-bounty-awaiting-for-approval')(robot)
+  require('./bot_scripts/greet-new-contributor')(robot)
 
   await slackCachePromise
 
