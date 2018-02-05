@@ -202,7 +202,7 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
   let srcColumns, dstColumn
   switch (state) {
     case 'approved':
-      srcColumns = [reviewColumn]
+      srcColumns = [contributorColumn, reviewColumn]
       dstColumn = testColumn
       break
     case 'failed':
