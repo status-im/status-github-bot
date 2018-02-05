@@ -9,6 +9,7 @@ module.exports = async (robot) => {
 
   require('./bot_scripts/assign-new-pr-to-review')(robot)
   require('./bot_scripts/assign-approved-pr-to-test')(robot)
+  require('./scripts/assign-pr-via-comment')(robot)
   require('./bot_scripts/assign-to-bounty-awaiting-for-approval')(robot)
   require('./bot_scripts/greet-new-contributor')(robot)
 
