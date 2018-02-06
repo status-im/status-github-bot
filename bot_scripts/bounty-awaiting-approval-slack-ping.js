@@ -14,26 +14,26 @@ const Slack = require('probot-slack-status')
 const defaultConfig = require('../lib/config')
 const slackHelper = require('../lib/slack')
 
-module.exports = (robot, getSlackUsernameFromGitHubId) => {
+module.exports = (robot, getSlackMentionFromGitHubId) => {
   robot.log('Connected to bounty-awaiting-approval-slack-ping')
 
   Slack(robot, (slack) => {
     robot.log.trace('Connected to Slack')
 
-    registerForNewBounties(robot, slack, getSlackUsernameFromGitHubId)
+    registerForNewBounties(robot, slack, getSlackMentionFromGitHubId)
   })
 }
 
-function registerForNewBounties (robot, slackClient, getSlackUsernameFromGitHubId) {
+function registerForNewBounties (robot, slackClient, getSlackMentionFromGitHubId) {
   robot.on('issues.labeled', async context => {
     // Make sure we don't listen to our own messages
     if (context.isBot) return null
 
-    await notifyCollaborators(context, robot, slackClient, getSlackUsernameFromGitHubId)
+    await notifyCollaborators(context, robot, slackClient, getSlackMentionFromGitHubId)
   })
 }
 
-async function notifyCollaborators (context, robot, slackClient, getSlackUsernameFromGitHubId) {
+async function notifyCollaborators (context, robot, slackClient, getSlackMentionFromGitHubId) {
   const { github, payload } = context
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
@@ -47,7 +47,7 @@ async function notifyCollaborators (context, robot, slackClient, getSlackUsernam
 
   robot.log(`bountyAwaitingApprovalSlackPing - issue #${payload.issue.number} on ${ownerName}/${repoName} was labeled as a bounty awaiting approval. Pinging slack...`)
 
-  const slackCollaborators = await getSlackCollaborators(ownerName, repoName, github, robot, getSlackUsernameFromGitHubId)
+  const slackCollaborators = await getSlackCollaborators(ownerName, repoName, github, robot, getSlackMentionFromGitHubId)
 
   // Send message to Slack
   slackHelper.sendMessage(
@@ -59,13 +59,12 @@ async function notifyCollaborators (context, robot, slackClient, getSlackUsernam
   )
 }
 
-// Get the Slack usernames of the collaborators of this repo.
-// Collaborators should add a mapping of their GitHub to Slack usernames in .github/collaborators.yml
-async function getSlackCollaborators (owner, repo, github, robot, getSlackUsernameFromGitHubId) {
+// Get the Slack IDs of the collaborators of this repo.
+async function getSlackCollaborators (owner, repo, github, robot, getSlackMentionFromGitHubId) {
   // Grab a list of collaborators to this repo, as an array of GitHub login usernames
   let collaborators = await github.repos.getCollaborators({owner, repo})
   collaborators = collaborators.data.map(collaboratorObject => collaboratorObject.login)
 
   // Create an array of Slack usernames from GitHub usernames
-  return collaborators.map(getSlackUsernameFromGitHubId).filter(u => u)
+  return collaborators.map(getSlackMentionFromGitHubId).filter(id => id)
 }
