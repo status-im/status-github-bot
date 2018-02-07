@@ -54,8 +54,8 @@ async function notifyCollaborators (context, robot, slackClient, getSlackMention
     robot,
     slackClient,
     config.slack.notification.room,
-    `New bounty awaiting approval: [#${payload.issue.number} - ${payload.issue.title}](${payload.issue.html_url})
-    ${slackCollaborators.map(name => `@${name}`).join(', ')}`
+    `New bounty awaiting approval: ${payload.issue.html_url}
+/cc ${slackCollaborators.join(', ')}`
   )
 }
 
