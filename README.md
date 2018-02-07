@@ -11,9 +11,7 @@ available, etc!
 
 ## What does the bot do?
 
-Right now the bot has two sets of capabilities:
-
-- Doing background management in GitHub:
+- Background management in GitHub:
   - Assign new PRs to the `Pipeline for QA` project board (`REVIEW` column).
   - Move existing PRs to the correct `Pipeline for QA` project board column (`REVIEW`/`IN TEST`) depending on whether or not the required conditions are met (is mergeable, at least two reviewers have approved and there is no request for changes).
   - Assign issues that are labeled `bounty-awaiting-approval` to the `Status SOB Swarm` project board (`bounty-awaiting-approval` column).
@@ -22,6 +20,7 @@ Right now the bot has two sets of capabilities:
   - Unfurls links on Issues and Pull Request discussions.
   - Disallows merging of PRs containing WIP in the title.
   - Mention repo collaborators on Slack when a GHI is assigned the `bounty-awaiting-approval` label.
+  - When a PR is moved to the IN TEST column and the build has passed successfully, then the bot will kick a test automation build in Jenkins (retrying periodically if the PR build is still running).
   - New functionality will be added in the future (wishlist is being tracked [here](https://docs.google.com/document/d/19NZEJ453av-owAEBXcIPjavbGKMBFlfVcwsuQ_ORzR4/))
 
 The project board names, column names, welcome message and other values are stored in the `.github/github-bot.yml` file. It can be overriden for each specific repository by adding a file in the same path on the respective repository (see [probot-config](https://github.com/getsentry/probot-config)).
@@ -74,11 +73,12 @@ See the official [docs for deployment](https://probot.github.io/docs/deployment/
             - [x] Check the box for **Push** events
         - Repository projects - **Read & Write**
             - [x] Check the box for **Project for repository projects** events
+            - [x] Check the box for **Project card for repository projects** events
         - Organization projects - **Read-only**
             - [x] Check the box for **Project for organization projects** events
         - Single File - **Read-only**
             - Path: `.github/github-bot.yml`
-    1. 🔍  Verify that you have **ticked 8 boxes**.
+    1. 🔍  Verify that you have **ticked 9 boxes**.
     1. Generate a private key pass and save it.
 1. Installing the bot service:
     1. Deploy the bot to the cloud.

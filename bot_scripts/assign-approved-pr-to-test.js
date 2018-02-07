@@ -13,6 +13,7 @@
 
 // const getConfig = require('probot-config')
 const defaultConfig = require('../lib/config')
+const gitHubHelpers = require('../lib/github-helpers')
 const createScheduler = require('probot-scheduler')
 const Slack = require('probot-slack-status')
 const slackHelper = require('../lib/slack')
@@ -38,13 +39,6 @@ async function getProjectFromName (github, ownerName, repoName, projectBoardName
   })
 
   return ghprojectsPayload.data.find(p => p.name === projectBoardName)
-}
-
-async function getProjectCardForPullRequest (github, columnId, pullRequestUrl) {
-  const ghcardsPayload = await github.projects.getProjectCards({column_id: columnId})
-  const ghcard = ghcardsPayload.data.find(c => c.content_url === pullRequestUrl)
-
-  return ghcard
 }
 
 async function checkOpenPullRequests (robot, context) {
@@ -133,76 +127,16 @@ async function checkOpenPullRequests (robot, context) {
   }
 }
 
-async function getPullRequestReviewStates (github, repo, pullRequest) {
-  var finalReviewsMap = new Map()
-  const ghreviews = await github.paginate(
-    github.pullRequests.getReviews({owner: repo.owner.login, repo: repo.name, number: pullRequest.number, per_page: 100}),
-    res => res.data)
-  for (var review of ghreviews) {
-    switch (review.state) {
-      case 'APPROVED':
-      case 'CHANGES_REQUESTED':
-      case 'PENDING':
-        finalReviewsMap.set(review.user.id, review.state)
-        break
-    }
-  }
-
-  return Array.from(finalReviewsMap.values())
-}
-
-async function getReviewApprovalState (github, robot, repo, pullRequest) {
-  // Get detailed pull request
-  const fullPullRequestPayload = await github.pullRequests.get({owner: repo.owner.login, repo: repo.name, number: pullRequest.number})
-  pullRequest = fullPullRequestPayload.data
-  if (pullRequest.mergeable !== null && pullRequest.mergeable !== undefined && !pullRequest.mergeable) {
-    robot.log.debug(`pullRequest.mergeable is ${pullRequest.mergeable}, considering as failed`)
-    return 'failed'
-  }
-
-  let state
-  switch (pullRequest.mergeable_state) {
-    case 'clean':
-      state = 'approved'
-      break
-    case 'dirty':
-      state = 'failed'
-      break
-  }
-  robot.log.debug(`pullRequest.mergeable_state is ${pullRequest.mergeable_state}, considering state as ${state}`)
-
-  if (state !== 'approved') {
-    return state
-  }
-
-  const threshold = 2 // Minimum number of approvers
-
-  var finalReviews = await getPullRequestReviewStates(github, repo, pullRequest)
-  robot.log.debug(finalReviews)
-
-  const approvedReviews = finalReviews.filter(reviewState => reviewState === 'APPROVED')
-  if (approvedReviews.length >= threshold) {
-    const reviewsWithChangesRequested = finalReviews.filter(reviewState => reviewState === 'CHANGES_REQUESTED')
-    if (reviewsWithChangesRequested.length === 0) {
-      return 'approved'
-    }
-
-    return 'changes_requested'
-  }
-
-  return 'awaiting_reviewers'
-}
-
 async function assignPullRequestToCorrectColumn (github, robot, repo, pullRequest, contributorColumn, reviewColumn, testColumn, room) {
-  const ownerName = repo.owner.login
+  const repoOwner = repo.owner.login
   const repoName = repo.name
   const prNumber = pullRequest.number
 
   let state = null
   try {
-    state = await getReviewApprovalState(github, robot, repo, pullRequest)
+    state = await gitHubHelpers.getReviewApprovalState(github, robot, repoOwner, repoName, prNumber)
   } catch (err) {
-    robot.log.error(`Couldn't calculate the PR approval state: ${err}`, ownerName, repoName, prNumber)
+    robot.log.error(`Couldn't calculate the PR approval state: ${err}`, repoOwner, repoName, prNumber)
   }
 
   let srcColumns, dstColumn
@@ -227,14 +161,14 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
       return
   }
 
-  robot.log.debug(`assignPullRequestToTest - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}. PR should be in ${dstColumn.name} column`)
+  robot.log.debug(`assignPullRequestToTest - Handling Pull Request #${prNumber} on repo ${repoOwner}/${repoName}. PR should be in ${dstColumn.name} column`)
 
   // Look for PR card in source column(s)
   let existingGHCard = null
   let srcColumn = null
   for (const c of srcColumns) {
     try {
-      existingGHCard = await getProjectCardForPullRequest(github, c.id, pullRequest.issue_url)
+      existingGHCard = await gitHubHelpers.getProjectCardForIssue(github, c.id, pullRequest.issue_url)
       if (existingGHCard) {
         srcColumn = c
         break
@@ -274,7 +208,7 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
 
       // Look for PR card in destination column
       try {
-        const existingGHCard = await getProjectCardForPullRequest(github, dstColumn.id, pullRequest.issue_url)
+        const existingGHCard = await gitHubHelpers.getProjectCardForIssue(github, dstColumn.id, pullRequest.issue_url)
         if (existingGHCard) {
           robot.log.trace(`Found card in target column, ignoring`, existingGHCard.id, dstColumn.id)
           return

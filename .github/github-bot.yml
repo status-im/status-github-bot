@@ -12,6 +12,10 @@ bounty-project-board:
 welcome-bot:
   message: 'Thanks for making your first PR here!'
 
+automated-tests:
+  repo-full-name: 'status-im/status-react'
+  job-full-name: 'end-to-end-tests/status-app-end-to-end-tests'
+
 slack:
   notification:
     room: 'status-probot'

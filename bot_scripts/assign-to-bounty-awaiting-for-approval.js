@@ -12,6 +12,7 @@
 
 // const getConfig = require('probot-config')
 const slackHelper = require('../lib/slack')
+const gitHubHelpers = require('../lib/github-helpers')
 const defaultConfig = require('../lib/config')
 const Slack = require('probot-slack-status')
 
@@ -106,7 +107,6 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     return
   }
 
-  let ghcardPayload = null
   if (process.env.DRY_RUN) {
     if (assign) {
       robot.log.info(`Would have created card for issue`, column.id, payload.issue.id)
@@ -117,7 +117,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     if (assign) {
       try {
         // Create project card for the issue in the bounty-awaiting-approval column
-        ghcardPayload = await github.projects.createProjectCard({
+        const ghcardPayload = await github.projects.createProjectCard({
           column_id: column.id,
           content_type: 'Issue',
           content_id: payload.issue.id
@@ -130,7 +130,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
       }
     } else {
       try {
-        const ghcard = await getProjectCardForIssue(github, column.id, payload.issue.url)
+        const ghcard = await gitHubHelpers.getProjectCardForIssue(github, column.id, payload.issue.url)
         if (ghcard) {
           await github.projects.deleteProjectCard({id: ghcard.id})
           robot.log(`Deleted card: ${ghcard.url}`, ghcard.id)
@@ -149,11 +149,4 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
       slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
     }
   }
-}
-
-async function getProjectCardForIssue (github, columnId, issueUrl) {
-  const ghcardsPayload = await github.projects.getProjectCards({column_id: columnId})
-  const ghcard = ghcardsPayload.data.find(c => c.content_url === issueUrl)
-
-  return ghcard
 }

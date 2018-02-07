@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "eslint": "^4.16.0",
+    "hashmap": "^2.3.0",
+    "jenkins": "^0.20.1",
     "mem-cache": "0.0.5",
     "probot": "^5.0.0",
     "probot-config": "^0.1.0",

@@ -11,6 +11,7 @@ module.exports = async (robot) => {
   require('./bot_scripts/assign-approved-pr-to-test')(robot)
   require('./bot_scripts/assign-to-bounty-awaiting-for-approval')(robot)
   require('./bot_scripts/greet-new-contributor')(robot)
+  require('./bot_scripts/trigger-automation-test-build')(robot)
 
   await slackCachePromise
   robot.log.info('Slack user ID cache populated, loading remainder of scripts')
