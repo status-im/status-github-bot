@@ -33,8 +33,7 @@ module.exports = (robot) => {
 }
 
 async function assignPullRequestToReview (context, robot) {
-  const payload = context.payload
-  const github = context.github
+  const { github, payload } = context
   // const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const config = defaultConfig(robot, '.github/github-bot.yml')
   const ownerName = payload.repository.owner.login

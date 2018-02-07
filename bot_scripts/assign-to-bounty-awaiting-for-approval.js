@@ -41,8 +41,7 @@ module.exports = (robot) => {
 }
 
 async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
-  const github = context.github
-  const payload = context.payload
+  const { github, payload } = context
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
   // const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
