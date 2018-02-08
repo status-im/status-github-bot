@@ -10,35 +10,38 @@
 // Author:
 //   PombeirP
 
-const defaultConfig = require('../lib/config')
-const gitHubHelpers = require('../lib/github-helpers')
+const getConfig = require('probot-config')
 const jenkins = require('jenkins')({ baseUrl: process.env.JENKINS_URL, crumbIssuer: true, promisify: true })
 const HashMap = require('hashmap')
+
+const defaultConfig = require('../lib/config')
+const gitHubHelpers = require('../lib/github-helpers')
 
 const pendingPullRequests = new HashMap()
 
 module.exports = (robot) => {
-  const config = defaultConfig(robot, '.github/github-bot.yml')
-  const projectBoardConfig = config['project-board']
-  const automatedTestsConfig = config['automated-tests']
-
   if (!process.env.JENKINS_URL) {
     robot.log.info('trigger-automation-test-build - Jenkins is not configured, not loading script')
     return
   }
 
-  if (projectBoardConfig && automatedTestsConfig) {
-    setInterval(checkPendingPullRequests, 5 * 1000 * 60, robot)
-    registerForRelevantCardEvents(robot, { projectBoardConfig: projectBoardConfig, automatedTestingConfig: automatedTestsConfig })
+  setInterval(checkPendingPullRequests, 5 * 1000 * 60, robot)
+  registerForRelevantCardEvents(robot)
+}
+
+function registerForRelevantCardEvents (robot) {
+  robot.on('project_card.created', context => processChangedProjectCard(robot, context))
+  robot.on('project_card.moved', context => processChangedProjectCard(robot, context))
+}
+
+async function processChangedProjectCard (robot, context) {
+  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  const projectBoardConfig = config ? config['project-board'] : null
+  const automatedTestsConfig = config ? config['automated-tests'] : null
+  if (!projectBoardConfig || !automatedTestsConfig) {
+    return
   }
-}
 
-function registerForRelevantCardEvents (robot, config) {
-  robot.on('project_card.created', context => processChangedProjectCard(robot, context, config))
-  robot.on('project_card.moved', context => processChangedProjectCard(robot, context, config))
-}
-
-async function processChangedProjectCard (robot, context, config) {
   const { github, payload } = context
 
   if (payload.project_card.note) {
@@ -46,13 +49,12 @@ async function processChangedProjectCard (robot, context, config) {
     return
   }
 
-  const { projectBoardConfig, automatedTestingConfig } = config
   const projectBoardName = projectBoardConfig['name']
   const testColumnName = projectBoardConfig['test-column-name']
   const repo = payload.repository
 
-  if (repo.full_name !== automatedTestingConfig['repo-full-name']) {
-    robot.log.trace(`trigger-automation-test-build - Pull request project doesn't match watched repo, exiting`, repo.full_name, automatedTestingConfig['repo-full-name'])
+  if (repo.full_name !== automatedTestsConfig['repo-full-name']) {
+    robot.log.trace(`trigger-automation-test-build - Pull request project doesn't match watched repo, exiting`, repo.full_name, automatedTestsConfig['repo-full-name'])
     return
   }
 
@@ -91,7 +93,7 @@ async function processChangedProjectCard (robot, context, config) {
   }
 
   const prNumber = last(payload.project_card.content_url.split('/'), -1)
-  const fullJobName = automatedTestingConfig['job-full-name']
+  const fullJobName = automatedTestsConfig['job-full-name']
 
   await processPullRequest(github, robot, repo.owner.login, repo.name, prNumber, fullJobName)
 }

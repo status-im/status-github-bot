@@ -11,6 +11,8 @@
 //   Max Tyrrell (ImFeelingDucky/mac/yung_mac)
 
 const Slack = require('probot-slack-status')
+const getConfig = require('probot-config')
+
 const defaultConfig = require('../lib/config')
 const slackHelper = require('../lib/slack')
 
@@ -37,14 +39,14 @@ async function notifyCollaborators (context, robot, slackClient, getSlackMention
   const { github, payload } = context
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
-  const config = defaultConfig(robot, '.github/github-bot.yml')
-  const projectBoardConfig = config['bounty-project-board']
+  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  const bountyProjectBoardConfig = config['bounty-project-board']
 
-  if (!projectBoardConfig) {
+  if (!bountyProjectBoardConfig) {
     return
   }
 
-  const watchedLabelName = projectBoardConfig['awaiting-approval-label-name']
+  const watchedLabelName = bountyProjectBoardConfig['awaiting-approval-label-name']
   if (payload.label.name !== watchedLabelName) {
     robot.log.debug(`bountyAwaitingApprovalSlackPing - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
     return null

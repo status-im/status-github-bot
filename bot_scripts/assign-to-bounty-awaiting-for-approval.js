@@ -10,10 +10,11 @@
 // Author:
 //   PombeirP
 
-// const getConfig = require('probot-config')
 const slackHelper = require('../lib/slack')
 const gitHubHelpers = require('../lib/github-helpers')
 const defaultConfig = require('../lib/config')
+
+const getConfig = require('probot-config')
 const Slack = require('probot-slack-status')
 
 let slackClient = null
@@ -45,9 +46,8 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   const { github, payload } = context
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
-  // const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
-  const config = defaultConfig(robot, '.github/github-bot.yml')
-  const projectBoardConfig = config['bounty-project-board']
+  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  const projectBoardConfig = config ? config['bounty-project-board'] : null
 
   if (!projectBoardConfig) {
     return

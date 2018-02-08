@@ -11,11 +11,12 @@
 // Author:
 //   PombeirP
 
-// const getConfig = require('probot-config')
+const createScheduler = require('probot-scheduler')
+const getConfig = require('probot-config')
+const Slack = require('probot-slack-status')
+
 const defaultConfig = require('../lib/config')
 const gitHubHelpers = require('../lib/github-helpers')
-const createScheduler = require('probot-scheduler')
-const Slack = require('probot-slack-status')
 const slackHelper = require('../lib/slack')
 
 let slackClient = null
@@ -42,16 +43,15 @@ async function getProjectFromName (github, ownerName, repoName, projectBoardName
 }
 
 async function checkOpenPullRequests (robot, context) {
-  const github = context.github
-  const repo = context.payload.repository
+  const { github, payload } = context
+  const repo = payload.repository
   const ownerName = repo.owner.login
   const repoName = repo.name
-
-  // const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
-  const config = defaultConfig(robot, '.github/github-bot.yml')
-  const projectBoardConfig = config['project-board']
+  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  const projectBoardConfig = config ? config['project-board'] : null
 
   if (!projectBoardConfig) {
+    robot.log.debug(`Project board not configured in repo ${ownerName}/${repoName}, ignoring`)
     return
   }
 
@@ -115,7 +115,7 @@ async function checkOpenPullRequests (robot, context) {
     )
 
     // And make sure they are assigned to the correct project column
-    for (var pullRequest of allPullRequests) {
+    for (const pullRequest of allPullRequests) {
       try {
         await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, contributorColumn, reviewColumn, testColumn, config.slack.notification.room)
       } catch (err) {

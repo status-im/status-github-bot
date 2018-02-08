@@ -10,8 +10,9 @@
 // Author:
 //   PombeirP
 
-// const getConfig = require('probot-config')
 const defaultConfig = require('../lib/config')
+
+const getConfig = require('probot-config')
 const Slack = require('probot-slack-status')
 
 let slackClient = null
@@ -34,13 +35,12 @@ module.exports = (robot) => {
 
 async function assignPullRequestToReview (context, robot) {
   const { github, payload } = context
-  // const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
-  const config = defaultConfig(robot, '.github/github-bot.yml')
+  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
   const prNumber = payload.pull_request.number
 
-  const projectBoardConfig = config['project-board']
+  const projectBoardConfig = config ? config['project-board'] : null
   if (!projectBoardConfig) {
     return
   }
