@@ -47,12 +47,13 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   const repoName = payload.repository.name
   // const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const config = defaultConfig(robot, '.github/github-bot.yml')
+  const projectBoardConfig = config['bounty-project-board']
 
-  if (!config['bounty-project-board']) {
+  if (!projectBoardConfig) {
     return
   }
 
-  const watchedLabelName = config['bounty-project-board']['label-name']
+  const watchedLabelName = projectBoardConfig['awaiting-approval-label-name']
   if (payload.label.name !== watchedLabelName) {
     robot.log.debug(`assignIssueToBountyAwaitingForApproval - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
     return
@@ -68,8 +69,8 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   // TODO: The org project and project column info should be cached
   // in order to improve performance and reduce roundtrips
   let column = null
-  const projectBoardName = config['bounty-project-board'].name
-  const approvalColumnName = config['bounty-project-board']['awaiting-approval-column-name']
+  const projectBoardName = projectBoardConfig.name
+  const approvalColumnName = projectBoardConfig['awaiting-approval-column-name']
   try {
     const orgName = ownerName
 
@@ -107,6 +108,9 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     return
   }
 
+  const bountyLabelName = projectBoardConfig['bounty-label-name']
+  const isOfficialBounty = !!payload.issue.labels.find(l => l.name === bountyLabelName)
+
   if (process.env.DRY_RUN) {
     if (assign) {
       robot.log.info(`Would have created card for issue`, column.id, payload.issue.id)
@@ -141,12 +145,20 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     }
   }
 
-  if (!process.env.DRY_RUN_BOUNTY_APPROVAL) {
-    // Send message to Slack
-    if (assign) {
-      slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
+  let message
+  // Send message to Slack
+  if (assign) {
+    message = `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
+  } else {
+    if (isOfficialBounty) {
+      message = `${payload.issue.html_url} has been approved as an official bounty!`
     } else {
-      slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`)
+      message = `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
     }
+  }
+
+  if (message && !process.env.DRY_RUN_BOUNTY_APPROVAL) {
+    // Send message to Slack
+    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, message)
   }
 }

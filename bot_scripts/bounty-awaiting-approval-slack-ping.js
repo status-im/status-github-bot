@@ -38,8 +38,13 @@ async function notifyCollaborators (context, robot, slackClient, getSlackMention
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
   const config = defaultConfig(robot, '.github/github-bot.yml')
+  const projectBoardConfig = config['bounty-project-board']
 
-  const watchedLabelName = config['bounty-project-board']['label-name']
+  if (!projectBoardConfig) {
+    return
+  }
+
+  const watchedLabelName = projectBoardConfig['awaiting-approval-label-name']
   if (payload.label.name !== watchedLabelName) {
     robot.log.debug(`bountyAwaitingApprovalSlackPing - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
     return null
