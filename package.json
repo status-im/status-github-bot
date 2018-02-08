@@ -10,7 +10,7 @@
     "test": "jest && standard"
   },
   "dependencies": {
-    "eslint": "^4.16.0",
+    "eslint": "^4.17.0",
     "hashmap": "^2.3.0",
     "jenkins": "^0.20.1",
     "mem-cache": "0.0.5",
@@ -28,7 +28,7 @@
     "eslint-plugin-node": "^5.2.1",
     "eslint-plugin-promise": "^3.6.0",
     "eslint-plugin-standard": "^3.0.1",
-    "jest": "^22.1.4",
+    "jest": "^22.2.1",
     "smee-client": "^1.0.1",
     "standard": "^10.0.3"
   },
