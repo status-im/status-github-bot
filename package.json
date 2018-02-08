@@ -12,6 +12,7 @@
   "dependencies": {
     "eslint": "^4.17.0",
     "hashmap": "^2.3.0",
+    "hashset": "0.0.6",
     "jenkins": "^0.20.1",
     "mem-cache": "0.0.5",
     "probot": "^5.0.0",

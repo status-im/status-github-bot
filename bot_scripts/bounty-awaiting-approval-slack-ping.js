@@ -4,6 +4,7 @@
 //
 // Dependencies:
 //   github: "^13.1.0"
+//   hashset: "0.0.6"
 //   probot-config: "^0.1.0"
 //   probot-slack-status: "^0.2.2"
 //
@@ -12,6 +13,7 @@
 
 const Slack = require('probot-slack-status')
 const getConfig = require('probot-config')
+const HashSet = require('hashset')
 
 const defaultConfig = require('../lib/config')
 const slackHelper = require('../lib/slack')
@@ -40,9 +42,16 @@ async function notifyCollaborators (context, robot, slackClient, getSlackMention
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
-  const bountyProjectBoardConfig = config['bounty-project-board']
+  const bountyProjectBoardConfig = config ? config['bounty-project-board'] : null
+  const gitHubTeamConfig = config ? config['github-team'] : null
 
   if (!bountyProjectBoardConfig) {
+    robot.log.debug(`Bounty project board not configured in repo ${ownerName}/${repoName}, ignoring`)
+    return
+  }
+
+  if (!gitHubTeamConfig) {
+    robot.log.debug(`GitHub team not configured in repo ${ownerName}/${repoName}, ignoring`)
     return
   }
 
@@ -54,7 +63,16 @@ async function notifyCollaborators (context, robot, slackClient, getSlackMention
 
   robot.log(`bountyAwaitingApprovalSlackPing - issue #${payload.issue.number} on ${ownerName}/${repoName} was labeled as a bounty awaiting approval. Pinging slack...`)
 
-  const slackCollaborators = await getSlackCollaborators(ownerName, repoName, github, robot, getSlackMentionFromGitHubId)
+  const slackCollaborators = await getSlackCollaborators(ownerName, repoName, github, robot, gitHubTeamConfig, getSlackMentionFromGitHubId)
+
+  // Mention the project board owner as well, if configured
+  const bountyProjectBoardOwner = bountyProjectBoardConfig['owner']
+  if (bountyProjectBoardOwner) {
+    const slackUserMention = getSlackMentionFromGitHubId(bountyProjectBoardOwner)
+    if (slackUserMention) {
+      slackCollaborators.push(slackUserMention)
+    }
+  }
 
   // Send message to Slack
   slackHelper.sendMessage(
@@ -62,16 +80,41 @@ async function notifyCollaborators (context, robot, slackClient, getSlackMention
     slackClient,
     config.slack.notification.room,
     `New bounty awaiting approval: ${payload.issue.html_url}
-/cc ${slackCollaborators.join(', ')}`
+/cc ${slackCollaborators.values().join(', ')}`
   )
 }
 
+function randomInt (low, high) {
+  return Math.floor(Math.random() * (high - low) + low)
+}
+
 // Get the Slack IDs of the collaborators of this repo.
-async function getSlackCollaborators (owner, repo, github, robot, getSlackMentionFromGitHubId) {
+async function getSlackCollaborators (ownerName, repoName, github, robot, gitHubTeamConfig, getSlackMentionFromGitHubId) {
+  const teamSlug = gitHubTeamConfig['slug']
+  if (!teamSlug) {
+    robot.log.debug(`GitHub team slug not configured in repo ${ownerName}/${repoName}, ignoring`)
+    return
+  }
+
   // Grab a list of collaborators to this repo, as an array of GitHub login usernames
-  let collaborators = await github.repos.getCollaborators({owner, repo})
-  collaborators = collaborators.data.map(collaboratorObject => collaboratorObject.login)
+  const teams = await github.paginate(github.orgs.getTeams({org: ownerName}), res => res.data)
+  const team = teams.find(t => t.slug === teamSlug)
+  if (!team) {
+    robot.log.debug(`bountyAwaitingApprovalSlackPing - GitHub team with slug ${teamSlug} was not found. Ignoring`)
+    return
+  }
+
+  const teamMembers = await github.paginate(github.orgs.getTeamMembers({id: team.id, per_page: 100}), res => res.data)
 
   // Create an array of Slack usernames from GitHub usernames
-  return collaborators.map(getSlackMentionFromGitHubId).filter(id => id)
+  const slackUsers = teamMembers.map(u => u.login).map(getSlackMentionFromGitHubId).filter(id => id)
+  const randomTeamMemberLimit = 2
+  const selectedSlackUsers = new HashSet()
+
+  while (selectedSlackUsers.length < randomTeamMemberLimit || selectedSlackUsers.length < slackUsers.length) {
+    const slackUser = slackUsers[randomInt(0, slackUsers.length)]
+    selectedSlackUsers.add(slackUser)
+  }
+
+  return selectedSlackUsers
 }
