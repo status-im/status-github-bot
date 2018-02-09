@@ -1,13 +1,4 @@
-bounty-project-board:
-  name: 'Status SOB Swarm'
-  awaiting-approval-label-name: 'bounty-awaiting-approval'
-  bounty-label-name: 'bounty'
-  awaiting-approval-column-name: 'bounty-awaiting-approval'
-  owner: 'andytudhope'
+_extends: probot-settings
 
-welcome-bot:
-  message: 'Thanks for making your first PR here!'
-
-slack:
-  notification:
-    room: 'status-probot'
+github-team:
+  slug: 'go'
