@@ -20,7 +20,7 @@ let slackClient = null
 module.exports = (robot) => {
   // robot.on('slack.connected', ({ slack }) => {
   Slack(robot, (slack) => {
-    robot.log.trace('Connected, assigned slackClient')
+    robot.log.trace('assign-new-pr-to-review - Connected, assigned slackClient')
     slackClient = slack
   })
 
@@ -45,7 +45,7 @@ async function assignPullRequestToReview (context, robot) {
     return
   }
 
-  robot.log(`assignPullRequestToReview - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
+  robot.log(`assign-new-pr-to-review - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
 
   // Fetch repo projects
   // TODO: The repo project and project column info should be cached
@@ -63,11 +63,11 @@ async function assignPullRequestToReview (context, robot) {
     // Find 'Pipeline for QA' project
     const project = ghprojectsPayload.data.find(p => p.name === projectBoardName)
     if (!project) {
-      robot.log.error(`Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`)
+      robot.log.error(`assign-new-pr-to-review - Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`)
       return
     }
 
-    robot.log.debug(`Fetched ${project.name} project (${project.id})`)
+    robot.log.debug(`assign-new-pr-to-review - Fetched ${project.name} project (${project.id})`)
 
     // Fetch REVIEW column ID
     try {
@@ -75,24 +75,24 @@ async function assignPullRequestToReview (context, robot) {
 
       column = ghcolumnsPayload.data.find(c => c.name === reviewColumnName)
       if (!column) {
-        robot.log.error(`Couldn't find ${reviewColumnName} column in project ${project.name}`)
+        robot.log.error(`assign-new-pr-to-review - Couldn't find ${reviewColumnName} column in project ${project.name}`)
         return
       }
 
-      robot.log.debug(`Fetched ${column.name} column (${column.id})`)
+      robot.log.debug(`assign-new-pr-to-review - Fetched ${column.name} column (${column.id})`)
     } catch (err) {
-      robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
+      robot.log.error(`assign-new-pr-to-review - Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
       return
     }
   } catch (err) {
-    robot.log.error(`Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`assign-new-pr-to-review - Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
     return
   }
 
   // Create project card for the PR in the REVIEW column
   try {
     if (process.env.DRY_RUN) {
-      robot.log.debug('Would have created card', column.id, payload.pull_request.id)
+      robot.log.debug('assign-new-pr-to-review - Would have created card', column.id, payload.pull_request.id)
     } else {
       const ghcardPayload = await github.projects.createProjectCard({
         column_id: column.id,
@@ -100,13 +100,13 @@ async function assignPullRequestToReview (context, robot) {
         content_id: payload.pull_request.id
       })
 
-      robot.log.debug(`Created card: ${ghcardPayload.data.url}`, ghcardPayload.data.id)
+      robot.log.debug(`assign-new-pr-to-review - Created card: ${ghcardPayload.data.url}`, ghcardPayload.data.id)
     }
 
     // Send message to Slack
     const slackHelper = require('../lib/slack')
     slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned PR to ${reviewColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`)
   } catch (err) {
-    robot.log.error(`Couldn't create project card for the PR: ${err}`, column.id, payload.pull_request.id)
+    robot.log.error(`assign-new-pr-to-review - Couldn't create project card for the PR: ${err}`, column.id, payload.pull_request.id)
   }
 }

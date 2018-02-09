@@ -22,7 +22,7 @@ let slackClient = null
 module.exports = (robot) => {
   // robot.on('slack.connected', ({ slack }) => {
   Slack(robot, (slack) => {
-    robot.log.trace('Connected, assigned slackClient')
+    robot.log.trace('assign-to-bounty-awaiting-for-approval - Connected, assigned slackClient')
     slackClient = slack
   })
 
@@ -55,14 +55,14 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
   const watchedLabelName = projectBoardConfig['awaiting-approval-label-name']
   if (payload.label.name !== watchedLabelName) {
-    robot.log.debug(`assignIssueToBountyAwaitingForApproval - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
+    robot.log.debug(`assign-to-bounty-awaiting-for-approval - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
     return
   }
 
   if (assign) {
-    robot.log(`assignIssueToBountyAwaitingForApproval - Handling labeling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
+    robot.log(`assign-to-bounty-awaiting-for-approval - Handling labeling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
   } else {
-    robot.log(`assignIssueToBountyAwaitingForApproval - Handling unlabeling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
+    robot.log(`assign-to-bounty-awaiting-for-approval - Handling unlabeling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
   }
 
   // Fetch org projects
@@ -82,11 +82,11 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     // Find 'Status SOB Swarm' project
     const project = ghprojectsPayload.data.find(p => p.name === projectBoardName)
     if (!project) {
-      robot.log.error(`Couldn't find project ${projectBoardName} in ${orgName} org`)
+      robot.log.error(`assign-to-bounty-awaiting-for-approval - Couldn't find project ${projectBoardName} in ${orgName} org`)
       return
     }
 
-    robot.log.debug(`Fetched ${project.name} project (${project.id})`)
+    robot.log.debug(`assign-to-bounty-awaiting-for-approval - Fetched ${project.name} project (${project.id})`)
 
     // Fetch bounty-awaiting-approval column ID
     try {
@@ -94,17 +94,17 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
       column = ghcolumnsPayload.data.find(c => c.name === approvalColumnName)
       if (!column) {
-        robot.log.error(`Couldn't find ${approvalColumnName} column in project ${project.name}`)
+        robot.log.error(`assign-to-bounty-awaiting-for-approval - Couldn't find ${approvalColumnName} column in project ${project.name}`)
         return
       }
 
-      robot.log.debug(`Fetched ${column.name} column (${column.id})`)
+      robot.log.debug(`assign-to-bounty-awaiting-for-approval - Fetched ${column.name} column (${column.id})`)
     } catch (err) {
-      robot.log.error(`Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
+      robot.log.error(`assign-to-bounty-awaiting-for-approval - Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
       return
     }
   } catch (err) {
-    robot.log.error(`Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`assign-to-bounty-awaiting-for-approval - Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
     return
   }
 
@@ -113,9 +113,9 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
   if (process.env.DRY_RUN) {
     if (assign) {
-      robot.log.info(`Would have created card for issue`, column.id, payload.issue.id)
+      robot.log.info(`assign-to-bounty-awaiting-for-approval - Would have created card for issue`, column.id, payload.issue.id)
     } else {
-      robot.log.info(`Would have deleted card for issue`, column.id, payload.issue.id)
+      robot.log.info(`assign-to-bounty-awaiting-for-approval - Would have deleted card for issue`, column.id, payload.issue.id)
     }
   } else {
     if (assign) {
@@ -128,19 +128,19 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
         })
         const ghcard = ghcardPayload.data
 
-        robot.log(`Created card: ${ghcard.url}`, ghcard.id)
+        robot.log(`assign-to-bounty-awaiting-for-approval - Created card: ${ghcard.url}`, ghcard.id)
       } catch (err) {
-        robot.log.error(`Couldn't create project card for the issue: ${err}`, column.id, payload.issue.id)
+        robot.log.error(`assign-to-bounty-awaiting-for-approval - Couldn't create project card for the issue: ${err}`, column.id, payload.issue.id)
       }
     } else {
       try {
         const ghcard = await gitHubHelpers.getProjectCardForIssue(github, column.id, payload.issue.url)
         if (ghcard) {
           await github.projects.deleteProjectCard({id: ghcard.id})
-          robot.log(`Deleted card: ${ghcard.url}`, ghcard.id)
+          robot.log(`assign-to-bounty-awaiting-for-approval - Deleted card: ${ghcard.url}`, ghcard.id)
         }
       } catch (err) {
-        robot.log.error(`Couldn't delete project card for the issue: ${err}`, column.id, payload.issue.id)
+        robot.log.error(`assign-to-bounty-awaiting-for-approval - Couldn't delete project card for the issue: ${err}`, column.id, payload.issue.id)
       }
     }
   }
