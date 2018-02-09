@@ -12,6 +12,11 @@ bounty-project-board:
 welcome-bot:
   message: 'Thanks for making your first PR here!'
 
+github:
+  slack-mapping:
+    # - github: slack
+    martinklepsch: slack
+
 slack:
   notification:
     room: 'status-probot'
