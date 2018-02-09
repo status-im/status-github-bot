@@ -30,19 +30,23 @@ module.exports = (robot) => {
 }
 
 function registerForRelevantCardEvents (robot) {
-  robot.on('project_card.created', context => processChangedProjectCard(robot, context))
-  robot.on('project_card.moved', context => processChangedProjectCard(robot, context))
+  robot.on(['project_card.created', 'project_card.moved'], context => processChangedProjectCard(robot, context))
 }
 
 async function processChangedProjectCard (robot, context) {
+  const { github, payload } = context
+  const repo = payload.repository
+  if (!repo) {
+    robot.log.debug(`trigger-automation-test-build - Repository info is not present in payload, ignoring`)
+    return
+  }
+
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const projectBoardConfig = config ? config['project-board'] : null
   const automatedTestsConfig = config ? config['automated-tests'] : null
   if (!projectBoardConfig || !automatedTestsConfig) {
     return
   }
-
-  const { github, payload } = context
 
   if (payload.project_card.note) {
     robot.log.trace(`trigger-automation-test-build - Card is a note, ignoring`)
@@ -51,7 +55,6 @@ async function processChangedProjectCard (robot, context) {
 
   const projectBoardName = projectBoardConfig['name']
   const testColumnName = projectBoardConfig['test-column-name']
-  const repo = payload.repository
 
   if (repo.full_name !== automatedTestsConfig['repo-full-name']) {
     robot.log.trace(`trigger-automation-test-build - Pull request project doesn't match watched repo, exiting`, repo.full_name, automatedTestsConfig['repo-full-name'])
