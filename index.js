@@ -18,6 +18,7 @@ module.exports = async (robot) => {
 
   // Add scripts which require using the Slack/GitHub cache after this comment
   require('./bot_scripts/bounty-awaiting-approval-slack-ping')(robot, getSlackMentionFromGitHubId)
+  require('./bot_scripts/notify-reviewers-via-slack')(robot, getSlackIdFromGitHubId)
 
   // For more information on building apps:
   // https://probot.github.io/docs/
@@ -32,4 +33,8 @@ function getSlackMentionFromGitHubId (gitHubId) {
     return null
   }
   return `<@${id}>`
+}
+
+function getSlackIdFromGitHubId (gitHubId) {
+  return SlackGitHubCacheBuilder.getSlackIdFromGitHubId(gitHubId, slackGitHubCache)
 }
