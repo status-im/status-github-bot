@@ -15,12 +15,13 @@ const Slack = require('probot-slack-status')
 
 const defaultConfig = require('../lib/config')
 
+const botName = 'greet-new-contributor'
 let slackClient = null
 
 module.exports = (robot) => {
   // robot.on('slack.connected', ({ slack }) => {
   Slack(robot, (slack) => {
-    robot.log.trace('Connected, assigned slackClient')
+    robot.log.trace(`${botName} - Connected, assigned slackClient`)
     slackClient = slack
   })
 
@@ -45,7 +46,7 @@ async function greetNewContributor (context, robot) {
     return
   }
 
-  robot.log(`greetNewContributor - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
+  robot.log(`${botName} - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
 
   try {
     const ghissuesPayload = await github.issues.getForRepo({
@@ -60,7 +61,7 @@ async function greetNewContributor (context, robot) {
       try {
         const welcomeMessage = welcomeBotConfig.message
         if (process.env.DRY_RUN) {
-          robot.log('Would have created comment in GHI', ownerName, repoName, prNumber, welcomeMessage)
+          robot.log(`${botName} - Would have created comment in GHI`, ownerName, repoName, prNumber, welcomeMessage)
         } else {
           await github.issues.createComment({
             owner: ownerName,
@@ -75,13 +76,13 @@ async function greetNewContributor (context, robot) {
         slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoName} repo\n${payload.pull_request.html_url}`)
       } catch (err) {
         if (err.code !== 404) {
-          robot.log.error(`Couldn't create comment on PR: ${err}`, ownerName, repoName)
+          robot.log.error(`${botName} - Couldn't create comment on PR: ${err}`, ownerName, repoName)
         }
       }
     } else {
-      robot.log.debug('This is not the user\'s first PR on the repo, ignoring', ownerName, repoName, payload.pull_request.user.login)
+      robot.log.debug(`${botName} - This is not the user's first PR on the repo, ignoring`, ownerName, repoName, payload.pull_request.user.login)
     }
   } catch (err) {
-    robot.log.error(`Couldn't fetch the user's github issues for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`${botName} - Couldn't fetch the user's github issues for repo: ${err}`, ownerName, repoName)
   }
 }

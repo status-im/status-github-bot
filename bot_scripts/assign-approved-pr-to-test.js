@@ -19,12 +19,13 @@ const defaultConfig = require('../lib/config')
 const gitHubHelpers = require('../lib/github-helpers')
 const slackHelper = require('../lib/slack')
 
+const botName = 'assign-approved-pr-to-test'
 let slackClient = null
 
 module.exports = robot => {
   // robot.on('slack.connected', ({ slack }) => {
   Slack(robot, (slack) => {
-    robot.log.trace('assign-approved-pr-to-test - Connected, assigned slackClient')
+    robot.log.trace(`${botName} - Connected, assigned slackClient`)
     slackClient = slack
   })
 
@@ -51,7 +52,7 @@ async function checkOpenPullRequests (robot, context) {
   const projectBoardConfig = config ? config['project-board'] : null
 
   if (!projectBoardConfig) {
-    robot.log.debug(`assign-approved-pr-to-test - Project board not configured in repo ${ownerName}/${repoName}, ignoring`)
+    robot.log.debug(`${botName} - Project board not configured in repo ${ownerName}/${repoName}, ignoring`)
     return
   }
 
@@ -67,13 +68,13 @@ async function checkOpenPullRequests (robot, context) {
     // Find 'Pipeline for QA' project
     project = await getProjectFromName(github, ownerName, repoName, projectBoardConfig.name)
     if (!project) {
-      robot.log.error(`assign-approved-pr-to-test - Couldn't find project ${projectBoardConfig.name} in repo ${ownerName}/${repoName}`)
+      robot.log.error(`${botName} - Couldn't find project ${projectBoardConfig.name} in repo ${ownerName}/${repoName}`)
       return
     }
 
-    robot.log.debug(`assign-approved-pr-to-test - Fetched ${project.name} project (${project.id})`)
+    robot.log.debug(`${botName} - Fetched ${project.name} project (${project.id})`)
   } catch (err) {
-    robot.log.error(`assign-approved-pr-to-test - Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
     return
   }
 
@@ -83,29 +84,29 @@ async function checkOpenPullRequests (robot, context) {
     const ghcolumnsPayload = await github.projects.getProjectColumns({ project_id: project.id })
     ghcolumns = ghcolumnsPayload.data
   } catch (err) {
-    robot.log.error(`assign-approved-pr-to-test - Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
+    robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
     return
   }
 
   const contributorColumn = ghcolumns.find(c => c.name === contributorColumnName)
   if (!contributorColumn) {
-    robot.log.error(`assign-approved-pr-to-test - Couldn't find ${contributorColumnName} column in project ${project.name}`)
+    robot.log.error(`${botName} - Couldn't find ${contributorColumnName} column in project ${project.name}`)
     return
   }
 
   const reviewColumn = ghcolumns.find(c => c.name === reviewColumnName)
   if (!reviewColumn) {
-    robot.log.error(`assign-approved-pr-to-test - Couldn't find ${reviewColumnName} column in project ${project.name}`)
+    robot.log.error(`${botName} - Couldn't find ${reviewColumnName} column in project ${project.name}`)
     return
   }
 
   const testColumn = ghcolumns.find(c => c.name === testColumnName)
   if (!testColumn) {
-    robot.log.error(`assign-approved-pr-to-test - Couldn't find ${testColumnName} column in project ${project.name}`)
+    robot.log.error(`${botName} - Couldn't find ${testColumnName} column in project ${project.name}`)
     return
   }
 
-  robot.log.debug(`assign-approved-pr-to-test - Fetched ${contributorColumn.name} (${contributorColumn.id}), ${reviewColumn.name} (${reviewColumn.id}), ${testColumn.name} (${testColumn.id}) columns`)
+  robot.log.debug(`${botName} - Fetched ${contributorColumn.name} (${contributorColumn.id}), ${reviewColumn.name} (${reviewColumn.id}), ${testColumn.name} (${testColumn.id}) columns`)
 
   try {
     // Gather all open PRs in this repo
@@ -119,11 +120,11 @@ async function checkOpenPullRequests (robot, context) {
       try {
         await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, contributorColumn, reviewColumn, testColumn, config.slack.notification.room)
       } catch (err) {
-        robot.log.error(`assign-approved-pr-to-test - Unhandled exception while processing PR: ${err}`, ownerName, repoName)
+        robot.log.error(`${botName} - Unhandled exception while processing PR: ${err}`, ownerName, repoName)
       }
     }
   } catch (err) {
-    robot.log.error(`assign-approved-pr-to-test - Couldn't fetch the github pull requests for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`${botName} - Couldn't fetch the github pull requests for repo: ${err}`, ownerName, repoName)
   }
 }
 
@@ -136,7 +137,7 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
   try {
     state = await gitHubHelpers.getReviewApprovalState(github, robot, repoOwner, repoName, prNumber)
   } catch (err) {
-    robot.log.error(`assign-approved-pr-to-test - Couldn't calculate the PR approval state: ${err}`, repoOwner, repoName, prNumber)
+    robot.log.error(`${botName} - Couldn't calculate the PR approval state: ${err}`, repoOwner, repoName, prNumber)
   }
 
   let srcColumns, dstColumn
@@ -161,7 +162,7 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
       return
   }
 
-  robot.log.debug(`assign-approved-pr-to-test - Handling Pull Request #${prNumber} on repo ${repoOwner}/${repoName}. PR should be in ${dstColumn.name} column`)
+  robot.log.debug(`${botName} - Handling Pull Request #${prNumber} on repo ${repoOwner}/${repoName}. PR should be in ${dstColumn.name} column`)
 
   // Look for PR card in source column(s)
   let existingGHCard = null
@@ -174,7 +175,7 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
         break
       }
     } catch (err) {
-      robot.log.error(`assign-approved-pr-to-test - Failed to retrieve project card for the PR, aborting: ${err}`, c.id, pullRequest.issue_url)
+      robot.log.error(`${botName} - Failed to retrieve project card for the PR, aborting: ${err}`, c.id, pullRequest.issue_url)
       return
     }
   }
@@ -182,39 +183,39 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
   if (existingGHCard) {
     // Move PR card to the destination column
     try {
-      robot.log.trace(`assign-approved-pr-to-test - Found card in source column ${srcColumn.name}`, existingGHCard.id, srcColumn.id)
+      robot.log.trace(`${botName} - Found card in source column ${srcColumn.name}`, existingGHCard.id, srcColumn.id)
 
       if (dstColumn === srcColumn) {
         return
       }
 
       if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
-        robot.log.info(`assign-approved-pr-to-test - Would have moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`${botName} - Would have moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
       } else {
         // Found in the source column, let's move it to the destination column
         await github.projects.moveProjectCard({id: existingGHCard.id, position: 'bottom', column_id: dstColumn.id})
 
-        robot.log.info(`assign-approved-pr-to-test - Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`${botName} - Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
       }
 
       slackHelper.sendMessage(robot, slackClient, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
     } catch (err) {
-      robot.log.error(`assign-approved-pr-to-test - Couldn't move project card for the PR: ${err}`, srcColumn.id, dstColumn.id, pullRequest.id)
+      robot.log.error(`${botName} - Couldn't move project card for the PR: ${err}`, srcColumn.id, dstColumn.id, pullRequest.id)
       slackHelper.sendMessage(robot, slackClient, room, `I couldn't move the PR to ${dstColumn.name} column :confused:\n${pullRequest.html_url}`)
     }
   } else {
     try {
-      robot.log.debug(`assign-approved-pr-to-test - Didn't find card in source column(s)`, srcColumns.map(c => c.id))
+      robot.log.debug(`${botName} - Didn't find card in source column(s)`, srcColumns.map(c => c.id))
 
       // Look for PR card in destination column
       try {
         const existingGHCard = await gitHubHelpers.getProjectCardForIssue(github, dstColumn.id, pullRequest.issue_url)
         if (existingGHCard) {
-          robot.log.trace(`assign-approved-pr-to-test - Found card in target column, ignoring`, existingGHCard.id, dstColumn.id)
+          robot.log.trace(`${botName} - Found card in target column, ignoring`, existingGHCard.id, dstColumn.id)
           return
         }
       } catch (err) {
-        robot.log.error(`assign-approved-pr-to-test - Failed to retrieve project card for the PR, aborting: ${err}`, dstColumn.id, pullRequest.issue_url)
+        robot.log.error(`${botName} - Failed to retrieve project card for the PR, aborting: ${err}`, dstColumn.id, pullRequest.issue_url)
         return
       }
 
@@ -228,11 +229,11 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
           content_id: pullRequest.id
         })
 
-        robot.log.info(`assign-approved-pr-to-test - Created card ${ghcardPayload.data.id} in ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`${botName} - Created card ${ghcardPayload.data.id} in ${dstColumn.name} for PR #${prNumber}`)
       }
     } catch (err) {
       // We normally arrive here because there is already a card for the PR in another column
-      robot.log.debug(`assign-approved-pr-to-test - Couldn't create project card for the PR: ${err}`, dstColumn.id, pullRequest.id)
+      robot.log.debug(`${botName} - Couldn't create project card for the PR: ${err}`, dstColumn.id, pullRequest.id)
     }
   }
 }

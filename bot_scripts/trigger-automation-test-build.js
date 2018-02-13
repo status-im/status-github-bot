@@ -17,11 +17,12 @@ const HashMap = require('hashmap')
 const defaultConfig = require('../lib/config')
 const gitHubHelpers = require('../lib/github-helpers')
 
+const botName = 'trigger-automation-test-build'
 const pendingPullRequests = new HashMap()
 
 module.exports = (robot) => {
   if (!process.env.JENKINS_URL) {
-    robot.log.info('trigger-automation-test-build - Jenkins is not configured, not loading script')
+    robot.log.info(`${botName} - Jenkins is not configured, not loading script`)
     return
   }
 
@@ -37,7 +38,7 @@ async function processChangedProjectCard (robot, context) {
   const { github, payload } = context
   const repo = payload.repository
   if (!repo) {
-    robot.log.debug(`trigger-automation-test-build - Repository info is not present in payload, ignoring`)
+    robot.log.debug(`${botName} - Repository info is not present in payload, ignoring`)
     return
   }
 
@@ -49,7 +50,7 @@ async function processChangedProjectCard (robot, context) {
   }
 
   if (payload.project_card.note) {
-    robot.log.trace(`trigger-automation-test-build - Card is a note, ignoring`)
+    robot.log.trace(`${botName} - Card is a note, ignoring`)
     return
   }
 
@@ -57,7 +58,7 @@ async function processChangedProjectCard (robot, context) {
   const testColumnName = projectBoardConfig['test-column-name']
 
   if (repo.full_name !== automatedTestsConfig['repo-full-name']) {
-    robot.log.trace(`trigger-automation-test-build - Pull request project doesn't match watched repo, exiting`, repo.full_name, automatedTestsConfig['repo-full-name'])
+    robot.log.trace(`${botName} - Pull request project doesn't match watched repo, exiting`, repo.full_name, automatedTestsConfig['repo-full-name'])
     return
   }
 
@@ -66,13 +67,13 @@ async function processChangedProjectCard (robot, context) {
     const columnPayload = await github.projects.getProjectColumn({ id: payload.project_card.column_id })
 
     if (columnPayload.data.name !== testColumnName) {
-      robot.log.trace(`trigger-automation-test-build - Card column name doesn't match watched column name, exiting`, columnPayload.data.name, testColumnName)
+      robot.log.trace(`${botName} - Card column name doesn't match watched column name, exiting`, columnPayload.data.name, testColumnName)
       return
     }
 
     inTestColumn = columnPayload.data
   } catch (error) {
-    robot.log.warn(`trigger-automation-test-build - Error while fetching project column`, payload.project_card.column_id, error)
+    robot.log.warn(`${botName} - Error while fetching project column`, payload.project_card.column_id, error)
     return
   }
 
@@ -87,11 +88,11 @@ async function processChangedProjectCard (robot, context) {
 
     project = projectPayload.data
     if (project.name !== projectBoardName) {
-      robot.log.trace(`trigger-automation-test-build - Card column name doesn't match watched column name, exiting`, project.name, projectBoardName)
+      robot.log.trace(`${botName} - Card column name doesn't match watched column name, exiting`, project.name, projectBoardName)
       return
     }
   } catch (error) {
-    robot.log.warn(`trigger-automation-test-build - Error while fetching project column`, payload.project_card.column_id, error)
+    robot.log.warn(`${botName} - Error while fetching project column`, payload.project_card.column_id, error)
     return
   }
 
@@ -113,16 +114,16 @@ async function processPullRequest (github, robot, repoOwner, repoName, prNumber,
       case 'awaiting_reviewers':
       case 'changes_requested':
         pendingPullRequests.set(prNumber, { github: github, repoOwner: repoOwner, repoName: repoName, fullJobName: fullJobName })
-        robot.log.debug(`trigger-automation-test-build - State is '${state}', adding to backlog to check periodically`, prNumber)
+        robot.log.debug(`${botName} - State is '${state}', adding to backlog to check periodically`, prNumber)
         return
       case 'failed':
-        robot.log.debug(`trigger-automation-test-build - State is '${state}', exiting`, prNumber)
+        robot.log.debug(`${botName} - State is '${state}', exiting`, prNumber)
         return
       case 'approved':
-        robot.log.debug(`trigger-automation-test-build - State is '${state}', proceeding`, prNumber)
+        robot.log.debug(`${botName} - State is '${state}', proceeding`, prNumber)
         break
       default:
-        robot.log.warn(`trigger-automation-test-build - State is '${state}', ignoring`, prNumber)
+        robot.log.warn(`${botName} - State is '${state}', ignoring`, prNumber)
         return
     }
   } catch (err) {
@@ -134,14 +135,14 @@ async function processPullRequest (github, robot, repoOwner, repoName, prNumber,
     const args = { parameters: { pr_id: prNumber, apk: `--apk=${prNumber}.apk` } }
 
     if (process.env.DRY_RUN) {
-      robot.log(`trigger-automation-test-build - Would start ${fullJobName} job in Jenkins`, prNumber, args)
+      robot.log(`${botName} - Would start ${fullJobName} job in Jenkins`, prNumber, args)
     } else {
-      robot.log(`trigger-automation-test-build - Starting ${fullJobName} job in Jenkins`, prNumber, args)
+      robot.log(`${botName} - Starting ${fullJobName} job in Jenkins`, prNumber, args)
       const buildId = await jenkins.job.build(fullJobName, args)
-      robot.log(`trigger-automation-test-build - Started job in Jenkins`, prNumber, buildId)
+      robot.log(`${botName} - Started job in Jenkins`, prNumber, buildId)
     }
   } catch (error) {
-    robot.log.error(`trigger-automation-test-build - Error while triggering Jenkins build. Will retry later`, prNumber, error)
+    robot.log.error(`${botName} - Error while triggering Jenkins build. Will retry later`, prNumber, error)
 
     pendingPullRequests.set(prNumber, { github: github, repoOwner: repoOwner, repoName: repoName, fullJobName: fullJobName })
   }
@@ -150,7 +151,7 @@ async function processPullRequest (github, robot, repoOwner, repoName, prNumber,
 async function checkPendingPullRequests (robot) {
   const _pendingPullRequests = pendingPullRequests.clone()
 
-  robot.log.trace(`trigger-automation-test-build - Processing ${_pendingPullRequests.size} pending PRs`)
+  robot.log.trace(`${botName} - Processing ${_pendingPullRequests.size} pending PRs`)
 
   for (const kvp of _pendingPullRequests.entries()) {
     const prNumber = kvp[0]
@@ -159,5 +160,5 @@ async function checkPendingPullRequests (robot) {
     await processPullRequest(github, robot, repoOwner, repoName, prNumber, fullJobName)
   }
 
-  robot.log.trace(`trigger-automation-test-build - Finished processing ${_pendingPullRequests.size} pending PRs`)
+  robot.log.trace(`${botName} - Finished processing ${_pendingPullRequests.size} pending PRs`)
 }

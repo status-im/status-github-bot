@@ -18,11 +18,11 @@ const HashSet = require('hashset')
 const defaultConfig = require('../lib/config')
 const slackHelper = require('../lib/slack')
 
-module.exports = (robot, getSlackMentionFromGitHubId) => {
-  robot.log('bounty-awaiting-approval-slack-ping - Connected to bounty-awaiting-approval-slack-ping')
+const botName = 'bounty-awaiting-approval-slack-ping'
 
+module.exports = (robot, getSlackMentionFromGitHubId) => {
   Slack(robot, (slack) => {
-    robot.log.trace('bounty-awaiting-approval-slack-ping - Connected to Slack')
+    robot.log.trace(`${botName} - Connected to Slack`)
 
     registerForNewBounties(robot, slack, getSlackMentionFromGitHubId)
   })
@@ -46,22 +46,22 @@ async function notifyCollaborators (context, robot, slackClient, getSlackMention
   const gitHubTeamConfig = config ? config['github-team'] : null
 
   if (!bountyProjectBoardConfig) {
-    robot.log.debug(`bounty-awaiting-approval-slack-ping - Bounty project board not configured in repo ${ownerName}/${repoName}, ignoring`)
+    robot.log.debug(`${botName} - Bounty project board not configured in repo ${ownerName}/${repoName}, ignoring`)
     return
   }
 
   if (!gitHubTeamConfig) {
-    robot.log.debug(`bounty-awaiting-approval-slack-ping - GitHub team not configured in repo ${ownerName}/${repoName}, ignoring`)
+    robot.log.debug(`${botName} - GitHub team not configured in repo ${ownerName}/${repoName}, ignoring`)
     return
   }
 
   const watchedLabelName = bountyProjectBoardConfig['awaiting-approval-label-name']
   if (payload.label.name !== watchedLabelName) {
-    robot.log.debug(`bounty-awaiting-approval-slack-ping - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
+    robot.log.debug(`${botName} - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
     return null
   }
 
-  robot.log(`bounty-awaiting-approval-slack-ping - issue #${payload.issue.number} on ${ownerName}/${repoName} was labeled as a bounty awaiting approval. Pinging slack...`)
+  robot.log(`${botName} - issue #${payload.issue.number} on ${ownerName}/${repoName} was labeled as a bounty awaiting approval. Pinging slack...`)
 
   const slackCollaborators = await getSlackCollaborators(ownerName, repoName, github, robot, gitHubTeamConfig, getSlackMentionFromGitHubId)
 
@@ -92,7 +92,7 @@ function randomInt (low, high) {
 async function getSlackCollaborators (ownerName, repoName, github, robot, gitHubTeamConfig, getSlackMentionFromGitHubId) {
   const teamSlug = gitHubTeamConfig['slug']
   if (!teamSlug) {
-    robot.log.debug(`bounty-awaiting-approval-slack-ping - GitHub team slug not configured in repo ${ownerName}/${repoName}, ignoring`)
+    robot.log.debug(`${botName} - GitHub team slug not configured in repo ${ownerName}/${repoName}, ignoring`)
     return
   }
 
@@ -100,7 +100,7 @@ async function getSlackCollaborators (ownerName, repoName, github, robot, gitHub
   const teams = await github.paginate(github.orgs.getTeams({org: ownerName}), res => res.data)
   const team = teams.find(t => t.slug === teamSlug)
   if (!team) {
-    robot.log.debug(`bounty-awaiting-approval-slack-ping - GitHub team with slug ${teamSlug} was not found. Ignoring`)
+    robot.log.debug(`${botName} - GitHub team with slug ${teamSlug} was not found. Ignoring`)
     return
   }
 
