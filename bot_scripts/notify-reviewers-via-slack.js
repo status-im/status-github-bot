@@ -9,7 +9,8 @@
 
 const { WebClient } = require('@slack/client')
 const slackWeb = new WebClient(process.env.SLACK_BOT_TOKEN)
-const botName = 'notify-reviwers-via-slack'
+const botName = 'notify-reviewers-via-slack'
+const botUserName = 'probot'
 
 module.exports = (robot, getSlackIdFromGitHubId) => {
   robot.log(`${botName} - Starting...`)
@@ -28,11 +29,11 @@ function registerForNewReviewRequests (robot, getSlackIdFromGitHubId) {
 async function notifyReviewers (context, robot, getSlackIdFromGitHubId) {
   const { payload } = context
 
-  for (var reviewer of payload.pull_request.requested_reviewers) {
+  for (let reviewer of payload.pull_request.requested_reviewers) {
     const userID = getSlackIdFromGitHubId(reviewer.login)
 
     if (userID === undefined) {
-      robot.log.error('Could not find Slack ID for GitHub user', reviewer.login)
+      robot.log.warn('Could not find Slack ID for GitHub user', reviewer.login)
     } else {
       slackWeb.im.open(userID).then((resp) => {
         const dmChannelID = resp.channel.id
@@ -42,7 +43,7 @@ async function notifyReviewers (context, robot, getSlackIdFromGitHubId) {
         robot.log.info(`${botName} - Opened DM Channel ${dmChannelID}`)
         robot.log.info(`Notifying ${userID} about review request in ${payload.pull_request.url}`)
 
-        slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: 'probot'})
+        slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: botUserName})
       }).catch(error => robot.log.error('Could not open DM channel for review request notification', error))
     }
   }
