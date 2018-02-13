@@ -40,8 +40,7 @@ async function notifyReviewers (context, robot, getSlackIdFromGitHubId) {
 
     slackWeb.im.open(userID).then(resp => {
       const dmChannelID = resp.channel.id
-      const octoboxNote = 'For more powerful management of GitHub notifications also check out https://octobox.io/'
-      const msg = `New Pull Request awaiting review: ${payload.pull_request.html_url}\n${octoboxNote}`
+      const msg = `New Pull Request awaiting your review: ${payload.pull_request.html_url}`
 
       robot.log.info(`${botName} - Opened DM Channel ${dmChannelID}`)
       robot.log.info(`Notifying ${userID} about review request in ${payload.pull_request.url}`)
