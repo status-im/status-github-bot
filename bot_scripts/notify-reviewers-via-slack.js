@@ -7,10 +7,11 @@
 // Author:
 //   Martin Klepsch (martinklepsch)
 
+const slackHelper = require('../lib/slack')
+
 const { WebClient } = require('@slack/client')
 const slackWeb = new WebClient(process.env.SLACK_BOT_TOKEN)
 const botName = 'notify-reviewers-via-slack'
-const botUserName = 'probot'
 
 module.exports = (robot, getSlackIdFromGitHubId) => {
   robot.log(`${botName} - Starting...`)
@@ -32,19 +33,20 @@ async function notifyReviewers (context, robot, getSlackIdFromGitHubId) {
   for (let reviewer of payload.pull_request.requested_reviewers) {
     const userID = getSlackIdFromGitHubId(reviewer.login)
 
-    if (userID === undefined) {
+    if (!userID) {
       robot.log.warn('Could not find Slack ID for GitHub user', reviewer.login)
-    } else {
-      slackWeb.im.open(userID).then((resp) => {
-        const dmChannelID = resp.channel.id
-        const octoboxNote = 'For more powerful management of GitHub notifications also check out https://octobox.io/'
-        const msg = `New Pull Request awaiting review: ${payload.pull_request.html_url}\n${octoboxNote}`
-
-        robot.log.info(`${botName} - Opened DM Channel ${dmChannelID}`)
-        robot.log.info(`Notifying ${userID} about review request in ${payload.pull_request.url}`)
-
-        slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: botUserName})
-      }).catch(error => robot.log.error('Could not open DM channel for review request notification', error))
+      continue
     }
+
+    slackWeb.im.open(userID).then(resp => {
+      const dmChannelID = resp.channel.id
+      const octoboxNote = 'For more powerful management of GitHub notifications also check out https://octobox.io/'
+      const msg = `New Pull Request awaiting review: ${payload.pull_request.html_url}\n${octoboxNote}`
+
+      robot.log.info(`${botName} - Opened DM Channel ${dmChannelID}`)
+      robot.log.info(`Notifying ${userID} about review request in ${payload.pull_request.url}`)
+
+      slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
+    }).catch(error => robot.log.error('Could not open DM channel for review request notification', error))
   }
 }
