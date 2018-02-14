@@ -96,7 +96,12 @@ The bot gets its settings from a per-repo file located at `.github/github-bot.ym
 Examples of settings that can be configured:
 
 - `github-team/slug`: Slug of the team that owns the respective repository
-- `welcome-bot/message`: First time contributor welcome message
+- `welcome-bot/message-template`: First time contributor welcome message template. Examples of template values allowed:
+
+  - `{user}`: Replaced by the PR submitter's user name
+  - `{repo-name}`: Replaced by the PR's target repository name
+  - `{pr-number}`: Replaced by the PR number
+
 - `slack/notification/room`: Slack room used for notifications (e.g. `status-probot`)
 
 - Repository project board settings:

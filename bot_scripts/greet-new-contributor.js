@@ -26,6 +26,20 @@ module.exports = (robot) => {
   })
 }
 
+function executeTemplate (templateString, templateVars) {
+  let s = templateString
+
+  for (const templateVar in templateVars) {
+    if (templateVars.hasOwnProperty(templateVar)) {
+      const value = templateVars[templateVar]
+
+      s = s.replace(`{${templateVar}}`, value)
+    }
+  }
+
+  return s
+}
+
 async function greetNewContributor (context, robot) {
   const { github, payload } = context
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
@@ -51,7 +65,8 @@ async function greetNewContributor (context, robot) {
     const userPullRequests = ghissuesPayload.data.filter(issue => issue.pull_request)
     if (userPullRequests.length === 1) {
       try {
-        const welcomeMessage = welcomeBotConfig.message
+        const welcomeMessage = executeTemplate(welcomeBotConfig['message-template'], { user: payload.pull_request.user.login, 'pr-number': prNumber, 'repo-name': repoName })
+
         if (process.env.DRY_RUN) {
           robot.log(`${botName} - Would have created comment in GHI`, ownerName, repoName, prNumber, welcomeMessage)
         } else {
