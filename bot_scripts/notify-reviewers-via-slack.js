@@ -11,24 +11,24 @@ const slackHelper = require('../lib/slack')
 
 const botName = 'notify-reviewers-via-slack'
 
-module.exports = (robot, getSlackIdFromGitHubId) => {
+module.exports = (robot) => {
   robot.log(`${botName} - Starting...`)
-  registerForNewReviewRequests(robot, getSlackIdFromGitHubId)
+  registerForNewReviewRequests(robot)
 }
 
-function registerForNewReviewRequests (robot, getSlackIdFromGitHubId) {
+function registerForNewReviewRequests (robot) {
   robot.on('pull_request.review_requested', async context => {
     // Make sure we don't listen to our own messages
     if (context.isBot) return null
 
-    await notifyReviewer(context, robot, getSlackIdFromGitHubId)
+    await notifyReviewer(context, robot)
   })
 }
 
-async function notifyReviewer (context, robot, getSlackIdFromGitHubId) {
+async function notifyReviewer (context, robot) {
   const { payload } = context
   const reviewer = payload.requested_reviewer
-  const userID = getSlackIdFromGitHubId(reviewer.login)
+  const userID = await robot.gitHubIdMapper.getSlackIdFromGitHubId(reviewer.login)
 
   if (!userID) {
     robot.log.warn('Could not find Slack ID for GitHub user', reviewer.login)

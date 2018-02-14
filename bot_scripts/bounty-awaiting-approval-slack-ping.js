@@ -18,20 +18,20 @@ const slackHelper = require('../lib/slack')
 
 const botName = 'bounty-awaiting-approval-slack-ping'
 
-module.exports = (robot, getSlackMentionFromGitHubId) => {
-  registerForNewBounties(robot, getSlackMentionFromGitHubId)
+module.exports = (robot) => {
+  registerForNewBounties(robot)
 }
 
-function registerForNewBounties (robot, getSlackMentionFromGitHubId) {
+function registerForNewBounties (robot) {
   robot.on('issues.labeled', async context => {
     // Make sure we don't listen to our own messages
     if (context.isBot) return null
 
-    await notifyCollaborators(context, robot, getSlackMentionFromGitHubId)
+    await notifyCollaborators(context, robot)
   })
 }
 
-async function notifyCollaborators (context, robot, getSlackMentionFromGitHubId) {
+async function notifyCollaborators (context, robot) {
   const { github, payload } = context
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
@@ -57,12 +57,12 @@ async function notifyCollaborators (context, robot, getSlackMentionFromGitHubId)
 
   robot.log(`${botName} - issue #${payload.issue.number} on ${ownerName}/${repoName} was labeled as a bounty awaiting approval. Pinging slack...`)
 
-  const slackCollaborators = await getSlackCollaborators(ownerName, repoName, github, robot, gitHubTeamConfig, getSlackMentionFromGitHubId)
+  const slackCollaborators = await getSlackCollaborators(ownerName, repoName, github, robot, gitHubTeamConfig)
 
   // Mention the project board owner as well, if configured
   const bountyProjectBoardOwner = bountyProjectBoardConfig['owner']
   if (bountyProjectBoardOwner) {
-    const slackUserMention = getSlackMentionFromGitHubId(bountyProjectBoardOwner)
+    const slackUserMention = robot.gitHubIdMapper.getSlackMentionFromGitHubId(bountyProjectBoardOwner)
     if (slackUserMention) {
       slackCollaborators.push(slackUserMention)
     }
@@ -82,7 +82,7 @@ function randomInt (low, high) {
 }
 
 // Get the Slack IDs of the collaborators of this repo.
-async function getSlackCollaborators (ownerName, repoName, github, robot, gitHubTeamConfig, getSlackMentionFromGitHubId) {
+async function getSlackCollaborators (ownerName, repoName, github, robot, gitHubTeamConfig) {
   const teamSlug = gitHubTeamConfig['slug']
   if (!teamSlug) {
     robot.log.debug(`${botName} - GitHub team slug not configured in repo ${ownerName}/${repoName}, ignoring`)
@@ -100,12 +100,21 @@ async function getSlackCollaborators (ownerName, repoName, github, robot, gitHub
   const teamMembers = await github.paginate(github.orgs.getTeamMembers({id: team.id, per_page: 100}), res => res.data)
 
   // Create an array of Slack usernames from GitHub usernames
-  const slackUsers = teamMembers.map(u => u.login).map(getSlackMentionFromGitHubId).filter(id => id)
+  const gitHubUsers = teamMembers.map(u => u.login)
+  const slackUsers = new HashSet()
+  for (const gitHubUser of gitHubUsers) {
+    const id = await robot.gitHubIdMapper.getSlackMentionFromGitHubId(gitHubUser)
+    if (id) {
+      slackUsers.add(id)
+    }
+  }
+
+  // Select 2 random Slack team members
   const randomTeamMemberLimit = 2
   const selectedSlackUsers = new HashSet()
 
-  while (selectedSlackUsers.length < randomTeamMemberLimit || selectedSlackUsers.length < slackUsers.length) {
-    const slackUser = slackUsers[randomInt(0, slackUsers.length)]
+  while (selectedSlackUsers.size() < randomTeamMemberLimit || selectedSlackUsers.size() < slackUsers.size()) {
+    const slackUser = slackUsers[randomInt(0, slackUsers.size())]
     selectedSlackUsers.add(slackUser)
   }
 
