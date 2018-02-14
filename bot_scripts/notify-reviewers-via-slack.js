@@ -35,7 +35,9 @@ async function notifyReviewer (context, robot, getSlackIdFromGitHubId) {
     return
   }
 
-  robot.slackWeb.im.open(userID).then(resp => {
+  try {
+    const resp = await robot.slackWeb.im.open(userID)
+
     const dmChannelID = resp.channel.id
     const msg = `New Pull Request awaiting your review: ${payload.pull_request.html_url}`
 
@@ -43,5 +45,7 @@ async function notifyReviewer (context, robot, getSlackIdFromGitHubId) {
     robot.log.info(`Notifying ${userID} about review request in ${payload.pull_request.url}`)
 
     robot.slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
-  }).catch(error => robot.log.error('Could not open DM channel for review request notification', error))
+  } catch (error) {
+    robot.log.error('Could not open DM channel for review request notification', error)
+  }
 }
