@@ -89,6 +89,35 @@ See the official [docs for deployment](https://probot.github.io/docs/deployment/
 1. Install the GitHub App in an account:
     1. Select the repositories where the bot should work (e.g. `status-react`).
 
+## Customizing the bot
+
+The bot gets its settings from a per-repo file located at `.github/github-bot.yml`. That file extends the [base file](https://github.com/status-im/probot-settings/blob/master/.github/github-bot.yml) at the status-im/probot-settings repo.
+
+Examples of settings that can be configured:
+
+- `github-team/slug`: Slug of the team that owns the respective repository
+- `welcome-bot/message`: First time contributor welcome message
+- `slack/notification/room`: Slack room used for notifications (e.g. `status-probot`)
+
+- Repository project board settings:
+
+  - `project-board/name`: Name of the QA pipeline project board
+  - `project-board/contributor-column-name`: Name of the column in the project board to group issues that are being worked on by a contributor
+  - `project-board/review-column-name`: Name of the column in the project board to group issues that are up for review
+  - `project-board/test-column-name`: Name of the column in the project board to group issues that up for testing by QA
+
+- Bounty project board settings:
+
+  - `bounty-project-board/name`: Name of the bounty project board in GitHub
+  - `bounty-project-board/owner`: GitHub username of the maintainer of the bounty project board (used to e.g. send Slack notifications)
+  - `bounty-project-board/awaiting-approval-column-name`: Name of the column in the bounty project board to group issues that are awaiting for bounty approval
+  - `bounty-project-board/awaiting-approval-label-name`: Name of the label used in issues to declare that an issue is awaiting approval to become a bounty
+  - `bounty-project-board/bounty-label-name`: Name of the label used in issues to declare that an issue is a bounty
+
+- Automated tests settings:
+  - `automated-tests/repo-full-name`: Full name of the repo to watch in project cards in order to automatically run automated tests CI job (e.g. `status-im/status-react`)
+  - `automated-tests/job-full-name`: Full name of the CI job to run automated tests (e.g. `end-to-end-tests/status-app-end-to-end-tests`)
+
 ## Restart the bot
 
 You may want to get comfortable with `heroku logs` and `heroku restart` if
