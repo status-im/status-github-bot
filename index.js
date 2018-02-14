@@ -1,9 +1,23 @@
 const MemCache = require('mem-cache')
 const slackGitHubCache = new MemCache({ timeoutDisabled: true })
 const SlackGitHubCacheBuilder = require('./lib/retrieve-slack-github-users')
+const Slack = require('./lib/slack')
 
 module.exports = async (robot) => {
   console.log('Yay, the app was loaded!')
+
+  Slack(robot, slack => {})
+
+  await new Promise((resolve, reject) => {
+    robot.on('slack.connected', event => {
+      robot.log.info(`Connected to Slack`)
+
+      // Copy Slack RTM and Slack Web clients to the robot object
+      robot['slack'] = event.payload.slack
+      robot['slackWeb'] = event.payload.slackWeb
+      resolve()
+    })
+  })
 
   const slackCachePromise = SlackGitHubCacheBuilder.build(robot, slackGitHubCache)
 

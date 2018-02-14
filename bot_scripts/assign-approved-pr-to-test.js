@@ -6,29 +6,20 @@
 //   github: "^13.1.0"
 //   probot-config: "^0.1.0"
 //   probot-scheduler: "^1.0.3"
-//   probot-slack-status: "^0.2.2"
 //
 // Author:
 //   PombeirP
 
 const createScheduler = require('probot-scheduler')
 const getConfig = require('probot-config')
-const Slack = require('probot-slack-status')
 
 const defaultConfig = require('../lib/config')
 const gitHubHelpers = require('../lib/github-helpers')
 const slackHelper = require('../lib/slack')
 
 const botName = 'assign-approved-pr-to-test'
-let slackClient = null
 
 module.exports = robot => {
-  // robot.on('slack.connected', ({ slack }) => {
-  Slack(robot, (slack) => {
-    robot.log.trace(`${botName} - Connected, assigned slackClient`)
-    slackClient = slack
-  })
-
   createScheduler(robot, { interval: 10 * 60 * 1000 })
   robot.on('schedule.repository', context => checkOpenPullRequests(robot, context))
 }
@@ -198,10 +189,10 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
         robot.log.info(`${botName} - Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
       }
 
-      slackHelper.sendMessage(robot, slackClient, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
+      slackHelper.sendMessage(robot, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
     } catch (err) {
       robot.log.error(`${botName} - Couldn't move project card for the PR: ${err}`, srcColumn.id, dstColumn.id, pullRequest.id)
-      slackHelper.sendMessage(robot, slackClient, room, `I couldn't move the PR to ${dstColumn.name} column :confused:\n${pullRequest.html_url}`)
+      slackHelper.sendMessage(robot, room, `I couldn't move the PR to ${dstColumn.name} column :confused:\n${pullRequest.html_url}`)
     }
   } else {
     try {

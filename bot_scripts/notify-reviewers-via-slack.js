@@ -9,8 +9,6 @@
 
 const slackHelper = require('../lib/slack')
 
-const { WebClient } = require('@slack/client')
-const slackWeb = new WebClient(process.env.SLACK_BOT_TOKEN)
 const botName = 'notify-reviewers-via-slack'
 
 module.exports = (robot, getSlackIdFromGitHubId) => {
@@ -37,13 +35,13 @@ async function notifyReviewer (context, robot, getSlackIdFromGitHubId) {
     return
   }
 
-  slackWeb.im.open(userID).then(resp => {
+  robot.slackWeb.im.open(userID).then(resp => {
     const dmChannelID = resp.channel.id
     const msg = `New Pull Request awaiting your review: ${payload.pull_request.html_url}`
 
     robot.log.info(`${botName} - Opened DM Channel ${dmChannelID}`)
     robot.log.info(`Notifying ${userID} about review request in ${payload.pull_request.url}`)
 
-    slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
+    robot.slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
   }).catch(error => robot.log.error('Could not open DM channel for review request notification', error))
 }

@@ -5,26 +5,18 @@
 // Dependencies:
 //   github: "^13.1.0"
 //   probot-config: "^0.1.0"
-//   probot-slack-status: "^0.2.2"
 //
 // Author:
 //   PombeirP
 
 const getConfig = require('probot-config')
-const Slack = require('probot-slack-status')
 
+const slackHelper = require('../lib/slack')
 const defaultConfig = require('../lib/config')
 
 const botName = 'greet-new-contributor'
-let slackClient = null
 
 module.exports = (robot) => {
-  // robot.on('slack.connected', ({ slack }) => {
-  Slack(robot, (slack) => {
-    robot.log.trace(`${botName} - Connected, assigned slackClient`)
-    slackClient = slack
-  })
-
   robot.on('pull_request.opened', async context => {
     // Make sure we don't listen to our own messages
     if (context.isBot) { return }
@@ -72,8 +64,7 @@ async function greetNewContributor (context, robot) {
         }
 
         // Send message to Slack
-        const slackHelper = require('../lib/slack')
-        slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoName} repo\n${payload.pull_request.html_url}`)
+        slackHelper.sendMessage(robot, config.slack.notification.room, `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoName} repo\n${payload.pull_request.html_url}`)
       } catch (err) {
         if (err.code !== 404) {
           robot.log.error(`${botName} - Couldn't create comment on PR: ${err}`, ownerName, repoName)

@@ -5,7 +5,6 @@
 // Dependencies:
 //   github: "^13.1.0"
 //   probot-config: "^0.1.0"
-//   probot-slack-status: "^0.2.2"
 //
 // Author:
 //   PombeirP
@@ -15,18 +14,10 @@ const gitHubHelpers = require('../lib/github-helpers')
 const defaultConfig = require('../lib/config')
 
 const getConfig = require('probot-config')
-const Slack = require('probot-slack-status')
 
 const botName = 'assign-to-bounty-awaiting-for-approval'
-let slackClient = null
 
 module.exports = (robot) => {
-  // robot.on('slack.connected', ({ slack }) => {
-  Slack(robot, (slack) => {
-    robot.log.trace(`${botName} - Connected, assigned slackClient`)
-    slackClient = slack
-  })
-
   robot.on('issues.labeled', async context => {
     // Make sure we don't listen to our own messages
     if (context.isBot) { return }
@@ -160,6 +151,6 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
   if (message && !process.env.DRY_RUN_BOUNTY_APPROVAL) {
     // Send message to Slack
-    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, message)
+    slackHelper.sendMessage(robot, config.slack.notification.room, message)
   }
 }

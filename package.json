@@ -10,6 +10,7 @@
     "test": "jest && standard"
   },
   "dependencies": {
+    "@slack/client": "^3.16.0",
     "eslint": "^4.17.0",
     "hashmap": "^2.3.0",
     "hashset": "0.0.6",
@@ -19,7 +20,6 @@
     "probot-config": "^0.1.0",
     "probot-gpg-status": "^0.5.4",
     "probot-scheduler": "^1.0.3",
-    "probot-slack-status": "^0.2.2",
     "unfurl": "github:probot/unfurl",
     "wip-bot": "github:gr2m/wip-bot"
   },

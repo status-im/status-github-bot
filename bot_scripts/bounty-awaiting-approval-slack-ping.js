@@ -6,12 +6,10 @@
 //   github: "^13.1.0"
 //   hashset: "0.0.6"
 //   probot-config: "^0.1.0"
-//   probot-slack-status: "^0.2.2"
 //
 // Author:
 //   Max Tyrrell (ImFeelingDucky/mac/yung_mac)
 
-const Slack = require('probot-slack-status')
 const getConfig = require('probot-config')
 const HashSet = require('hashset')
 
@@ -21,23 +19,19 @@ const slackHelper = require('../lib/slack')
 const botName = 'bounty-awaiting-approval-slack-ping'
 
 module.exports = (robot, getSlackMentionFromGitHubId) => {
-  Slack(robot, (slack) => {
-    robot.log.trace(`${botName} - Connected to Slack`)
-
-    registerForNewBounties(robot, slack, getSlackMentionFromGitHubId)
-  })
+  registerForNewBounties(robot, getSlackMentionFromGitHubId)
 }
 
-function registerForNewBounties (robot, slackClient, getSlackMentionFromGitHubId) {
+function registerForNewBounties (robot, getSlackMentionFromGitHubId) {
   robot.on('issues.labeled', async context => {
     // Make sure we don't listen to our own messages
     if (context.isBot) return null
 
-    await notifyCollaborators(context, robot, slackClient, getSlackMentionFromGitHubId)
+    await notifyCollaborators(context, robot, getSlackMentionFromGitHubId)
   })
 }
 
-async function notifyCollaborators (context, robot, slackClient, getSlackMentionFromGitHubId) {
+async function notifyCollaborators (context, robot, getSlackMentionFromGitHubId) {
   const { github, payload } = context
   const ownerName = payload.repository.owner.login
   const repoName = payload.repository.name
@@ -77,7 +71,6 @@ async function notifyCollaborators (context, robot, slackClient, getSlackMention
   // Send message to Slack
   slackHelper.sendMessage(
     robot,
-    slackClient,
     config.slack.notification.room,
     `New bounty awaiting approval: ${payload.issue.html_url}
 /cc ${slackCollaborators.values().join(', ')}`

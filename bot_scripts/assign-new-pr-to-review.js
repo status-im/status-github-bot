@@ -5,7 +5,6 @@
 // Dependencies:
 //   github: "^13.1.0"
 //   probot-config: "^0.1.0"
-//   probot-slack-status: "^0.2.2"
 //
 // Author:
 //   PombeirP
@@ -13,19 +12,11 @@
 const defaultConfig = require('../lib/config')
 
 const getConfig = require('probot-config')
-const Slack = require('probot-slack-status')
 const slackHelper = require('../lib/slack')
 
 const botName = 'assign-new-pr-to-review'
-let slackClient = null
 
 module.exports = (robot) => {
-  // robot.on('slack.connected', ({ slack }) => {
-  Slack(robot, (slack) => {
-    robot.log.trace(`${botName} - Connected, assigned slackClient`)
-    slackClient = slack
-  })
-
   robot.on('pull_request.opened', async context => {
     // Make sure we don't listen to our own messages
     if (context.isBot) { return }
@@ -106,7 +97,7 @@ async function assignPullRequestToReview (context, robot) {
     }
 
     // Send message to Slack
-    slackHelper.sendMessage(robot, slackClient, config.slack.notification.room, `Assigned PR to ${reviewColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`)
+    slackHelper.sendMessage(robot, config.slack.notification.room, `Assigned PR to ${reviewColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`)
   } catch (err) {
     robot.log.error(`${botName} - Couldn't create project card for the PR: ${err}`, column.id, payload.pull_request.id)
   }
