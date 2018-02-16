@@ -24,12 +24,8 @@ module.exports = robot => {
   robot.on('schedule.repository', context => checkOpenPullRequests(robot, context))
 }
 
-async function getProjectFromName (github, ownerName, repoName, projectBoardName) {
-  const ghprojectsPayload = await github.projects.getRepoProjects({
-    owner: ownerName,
-    repo: repoName,
-    state: 'open'
-  })
+async function getProjectFromName (github, repoInfo, projectBoardName) {
+  const ghprojectsPayload = await github.projects.getRepoProjects({ ...repoInfo, state: 'open' })
 
   return ghprojectsPayload.data.find(p => p.name === projectBoardName)
 }
@@ -37,13 +33,12 @@ async function getProjectFromName (github, ownerName, repoName, projectBoardName
 async function checkOpenPullRequests (robot, context) {
   const { github, payload } = context
   const repo = payload.repository
-  const ownerName = repo.owner.login
-  const repoName = repo.name
+  const repoInfo = { owner: payload.repository.owner.login, repo: payload.repository.name }
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const projectBoardConfig = config ? config['project-board'] : null
 
   if (!projectBoardConfig) {
-    robot.log.debug(`${botName} - Project board not configured in repo ${ownerName}/${repoName}, ignoring`)
+    robot.log.debug(`${botName} - Project board not configured in repo ${repoInfo.owner}/${repoInfo.repo}, ignoring`)
     return
   }
 
@@ -57,15 +52,15 @@ async function checkOpenPullRequests (robot, context) {
   let project
   try {
     // Find 'Pipeline for QA' project
-    project = await getProjectFromName(github, ownerName, repoName, projectBoardConfig.name)
+    project = await getProjectFromName(github, repoInfo, projectBoardConfig.name)
     if (!project) {
-      robot.log.error(`${botName} - Couldn't find project ${projectBoardConfig.name} in repo ${ownerName}/${repoName}`)
+      robot.log.error(`${botName} - Couldn't find project ${projectBoardConfig.name} in repo ${repoInfo.owner}/${repoInfo.repo}`)
       return
     }
 
     robot.log.debug(`${botName} - Fetched ${project.name} project (${project.id})`)
   } catch (err) {
-    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, repoInfo)
     return
   }
 
@@ -75,85 +70,57 @@ async function checkOpenPullRequests (robot, context) {
     const ghcolumnsPayload = await github.projects.getProjectColumns({ project_id: project.id })
     ghcolumns = ghcolumnsPayload.data
   } catch (err) {
-    robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
+    robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, repoInfo, project.id)
     return
   }
-
-  const contributorColumn = ghcolumns.find(c => c.name === contributorColumnName)
-  if (!contributorColumn) {
-    robot.log.error(`${botName} - Couldn't find ${contributorColumnName} column in project ${project.name}`)
-    return
-  }
-
-  const reviewColumn = ghcolumns.find(c => c.name === reviewColumnName)
-  if (!reviewColumn) {
-    robot.log.error(`${botName} - Couldn't find ${reviewColumnName} column in project ${project.name}`)
-    return
-  }
-
-  const testColumn = ghcolumns.find(c => c.name === testColumnName)
-  if (!testColumn) {
-    robot.log.error(`${botName} - Couldn't find ${testColumnName} column in project ${project.name}`)
-    return
-  }
-
-  robot.log.debug(`${botName} - Fetched ${contributorColumn.name} (${contributorColumn.id}), ${reviewColumn.name} (${reviewColumn.id}), ${testColumn.name} (${testColumn.id}) columns`)
 
   try {
-    // Gather all open PRs in this repo
-    const allPullRequests = await github.paginate(
-      github.pullRequests.getAll({owner: ownerName, repo: repoName, per_page: 100}),
-      res => res.data
-    )
+    const contributorColumn = findColumnByName(ghcolumns, contributorColumnName)
+    const reviewColumn = findColumnByName(ghcolumns, reviewColumnName)
+    const testColumn = findColumnByName(ghcolumns, testColumnName)
 
-    // And make sure they are assigned to the correct project column
-    for (const pullRequest of allPullRequests) {
-      try {
-        await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, contributorColumn, reviewColumn, testColumn, config.slack.notification.room)
-      } catch (err) {
-        robot.log.error(`${botName} - Unhandled exception while processing PR: ${err}`, ownerName, repoName)
+    robot.log.debug(`${botName} - Fetched ${contributorColumn.name} (${contributorColumn.id}), ${reviewColumn.name} (${reviewColumn.id}), ${testColumn.name} (${testColumn.id}) columns`)
+
+    try {
+      // Gather all open PRs in this repo
+      const allPullRequests = await github.paginate(
+        github.pullRequests.getAll({ ...repoInfo, per_page: 100 }),
+        res => res.data
+      )
+
+      // And make sure they are assigned to the correct project column
+      for (const pullRequest of allPullRequests) {
+        try {
+          const columns = { contributor: contributorColumn, review: reviewColumn, test: testColumn }
+          await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, columns, config.slack.notification.room)
+        } catch (err) {
+          robot.log.error(`${botName} - Unhandled exception while processing PR: ${err}`, repoInfo)
+        }
       }
+    } catch (err) {
+      robot.log.error(`${botName} - Couldn't fetch the github pull requests for repo: ${err}`, repoInfo)
     }
   } catch (err) {
-    robot.log.error(`${botName} - Couldn't fetch the github pull requests for repo: ${err}`, ownerName, repoName)
+    robot.log.error(err.message, project.name)
   }
 }
 
-async function assignPullRequestToCorrectColumn (github, robot, repo, pullRequest, contributorColumn, reviewColumn, testColumn, room) {
-  const repoOwner = repo.owner.login
-  const repoName = repo.name
-  const prNumber = pullRequest.number
+async function assignPullRequestToCorrectColumn (github, robot, repo, pullRequest, columns, room) {
+  const prInfo = { owner: repo.owner.login, repo: repo.name, number: pullRequest.number }
 
   let state = null
   try {
-    state = await gitHubHelpers.getReviewApprovalState(github, robot, repoOwner, repoName, prNumber)
+    state = await gitHubHelpers.getReviewApprovalState(github, robot, prInfo)
   } catch (err) {
-    robot.log.error(`${botName} - Couldn't calculate the PR approval state: ${err}`, repoOwner, repoName, prNumber)
+    robot.log.error(`${botName} - Couldn't calculate the PR approval state: ${err}`, prInfo)
   }
 
-  let srcColumns, dstColumn
-  switch (state) {
-    case 'awaiting_reviewers':
-      srcColumns = [contributorColumn, testColumn]
-      dstColumn = reviewColumn
-      break
-    case 'changes_requested':
-      srcColumns = [reviewColumn, testColumn]
-      dstColumn = contributorColumn
-      break
-    case 'failed':
-      srcColumns = [reviewColumn, testColumn]
-      dstColumn = contributorColumn
-      break
-    case 'approved':
-      srcColumns = [contributorColumn, reviewColumn]
-      dstColumn = testColumn
-      break
-    default:
-      return
+  const { srcColumns, dstColumn } = getColumns(state, columns)
+  if (!dstColumn) {
+    return
   }
 
-  robot.log.debug(`${botName} - Handling Pull Request #${prNumber} on repo ${repoOwner}/${repoName}. PR should be in ${dstColumn.name} column`)
+  robot.log.debug(`${botName} - Handling Pull Request #${prInfo.number} on repo ${prInfo.owner}/${prInfo.repo}. PR should be in ${dstColumn.name} column`)
 
   // Look for PR card in source column(s)
   let existingGHCard = null
@@ -181,12 +148,12 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
       }
 
       if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
-        robot.log.info(`${botName} - Would have moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`${botName} - Would have moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prInfo.number}`)
       } else {
         // Found in the source column, let's move it to the destination column
         await github.projects.moveProjectCard({id: existingGHCard.id, position: 'bottom', column_id: dstColumn.id})
 
-        robot.log.info(`${botName} - Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`${botName} - Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prInfo.number}`)
       }
 
       slackHelper.sendMessage(robot, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
@@ -211,7 +178,7 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
       }
 
       if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
-        robot.log.info(`Would have created card in ${dstColumn.name} column for PR #${prNumber}`)
+        robot.log.info(`Would have created card in ${dstColumn.name} column for PR #${prInfo.number}`)
       } else {
         // It wasn't in either the source nor the destination columns, let's create a new card for it in the destination column
         const ghcardPayload = await github.projects.createProjectCard({
@@ -220,11 +187,35 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
           content_id: pullRequest.id
         })
 
-        robot.log.info(`${botName} - Created card ${ghcardPayload.data.id} in ${dstColumn.name} for PR #${prNumber}`)
+        robot.log.info(`${botName} - Created card ${ghcardPayload.data.id} in ${dstColumn.name} for PR #${prInfo.number}`)
       }
     } catch (err) {
       // We normally arrive here because there is already a card for the PR in another column
       robot.log.debug(`${botName} - Couldn't create project card for the PR: ${err}`, dstColumn.id, pullRequest.id)
     }
   }
+}
+
+function getColumns (state, columns) {
+  switch (state) {
+    case 'awaiting_reviewers':
+      return { srcColumns: [columns.contributor, columns.test], dstColumn: columns.review }
+    case 'changes_requested':
+      return { srcColumns: [columns.review, columns.test], dstColumn: columns.contributor }
+    case 'failed':
+      return { srcColumns: [columns.review, columns.test], dstColumn: columns.contributor }
+    case 'approved':
+      return { srcColumns: [columns.contributor, columns.review], dstColumn: columns.test }
+    default:
+      return { srcColumns: [], dstColumn: null }
+  }
+}
+
+function findColumnByName (ghcolumns, columnName) {
+  const column = ghcolumns.find(c => c.name === columnName)
+  if (!column) {
+    throw new Error(`${botName} - Couldn't find ${columnName} column`)
+  }
+
+  return column
 }

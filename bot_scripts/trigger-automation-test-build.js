@@ -42,6 +42,7 @@ async function processChangedProjectCard (robot, context) {
     return
   }
 
+  const repoInfo = { owner: repo.owner.login, repo: repo.name }
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const projectBoardConfig = config ? config['project-board'] : null
   const automatedTestsConfig = config ? config['automated-tests'] : null
@@ -81,12 +82,10 @@ async function processChangedProjectCard (robot, context) {
     return a[a.length + index]
   }
 
-  let project
   try {
     const projectId = last(inTestColumn.project_url.split('/'), -1)
     const projectPayload = await github.projects.getProject({ id: projectId })
-
-    project = projectPayload.data
+    const project = projectPayload.data
     if (project.name !== projectBoardName) {
       robot.log.trace(`${botName} - Card column name doesn't match watched column name, exiting`, project.name, projectBoardName)
       return
@@ -99,52 +98,52 @@ async function processChangedProjectCard (robot, context) {
   const prNumber = last(payload.project_card.content_url.split('/'), -1)
   const fullJobName = automatedTestsConfig['job-full-name']
 
-  await processPullRequest(github, robot, repo.owner.login, repo.name, prNumber, fullJobName)
+  await processPullRequest(github, robot, { ...repoInfo, number: prNumber }, fullJobName)
 }
 
-async function processPullRequest (github, robot, repoOwner, repoName, prNumber, fullJobName) {
+async function processPullRequest (github, robot, prInfo, fullJobName) {
   // Remove the PR from the pending PR list, if it is there
-  pendingPullRequests.delete(prNumber)
+  pendingPullRequests.delete(prInfo.number)
 
   try {
-    const state = await gitHubHelpers.getReviewApprovalState(github, robot, repoOwner, repoName, prNumber)
+    const state = await gitHubHelpers.getReviewApprovalState(github, robot, prInfo)
 
     switch (state) {
       case 'unstable':
       case 'awaiting_reviewers':
       case 'changes_requested':
-        pendingPullRequests.set(prNumber, { github: github, repoOwner: repoOwner, repoName: repoName, fullJobName: fullJobName })
-        robot.log.debug(`${botName} - State is '${state}', adding to backlog to check periodically`, prNumber)
+        pendingPullRequests.set(prInfo.number, { github: github, prInfo, fullJobName: fullJobName })
+        robot.log.debug(`${botName} - State is '${state}', adding to backlog to check periodically`, prInfo)
         return
       case 'failed':
-        robot.log.debug(`${botName} - State is '${state}', exiting`, prNumber)
+        robot.log.debug(`${botName} - State is '${state}', exiting`, prInfo)
         return
       case 'approved':
-        robot.log.debug(`${botName} - State is '${state}', proceeding`, prNumber)
+        robot.log.debug(`${botName} - State is '${state}', proceeding`, prInfo)
         break
       default:
-        robot.log.warn(`${botName} - State is '${state}', ignoring`, prNumber)
+        robot.log.warn(`${botName} - State is '${state}', ignoring`, prInfo)
         return
     }
   } catch (err) {
-    robot.log.error(`Couldn't calculate the PR approval state: ${err}`, repoOwner, repoName, prNumber)
+    robot.log.error(`Couldn't calculate the PR approval state: ${err}`, prInfo)
     return
   }
 
   try {
-    const args = { parameters: { pr_id: prNumber, apk: `--apk=${prNumber}.apk` } }
+    const args = { parameters: { pr_id: prInfo.number, apk: `--apk=${prInfo.number}.apk` } }
 
     if (process.env.DRY_RUN) {
-      robot.log(`${botName} - Would start ${fullJobName} job in Jenkins`, prNumber, args)
+      robot.log(`${botName} - Would start ${fullJobName} job in Jenkins`, prInfo, args)
     } else {
-      robot.log(`${botName} - Starting ${fullJobName} job in Jenkins`, prNumber, args)
+      robot.log(`${botName} - Starting ${fullJobName} job in Jenkins`, prInfo, args)
       const buildId = await jenkins.job.build(fullJobName, args)
-      robot.log(`${botName} - Started job in Jenkins`, prNumber, buildId)
+      robot.log(`${botName} - Started job in Jenkins`, prInfo, buildId)
     }
   } catch (error) {
-    robot.log.error(`${botName} - Error while triggering Jenkins build. Will retry later`, prNumber, error)
+    robot.log.error(`${botName} - Error while triggering Jenkins build. Will retry later`, prInfo, error)
 
-    pendingPullRequests.set(prNumber, { github: github, repoOwner: repoOwner, repoName: repoName, fullJobName: fullJobName })
+    pendingPullRequests.set(prInfo.number, { github: github, prInfo: prInfo, fullJobName: fullJobName })
   }
 }
 
@@ -153,11 +152,8 @@ async function checkPendingPullRequests (robot) {
 
   robot.log.trace(`${botName} - Processing ${_pendingPullRequests.size} pending PRs`)
 
-  for (const kvp of _pendingPullRequests.entries()) {
-    const prNumber = kvp[0]
-    const { github, repoOwner, repoName, fullJobName } = kvp[1]
-
-    await processPullRequest(github, robot, repoOwner, repoName, prNumber, fullJobName)
+  for (const { github, prInfo, fullJobName } of _pendingPullRequests.values()) {
+    await processPullRequest(github, robot, prInfo, fullJobName)
   }
 
   robot.log.trace(`${botName} - Finished processing ${_pendingPullRequests.size} pending PRs`)

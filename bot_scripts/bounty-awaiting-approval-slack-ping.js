@@ -33,19 +33,18 @@ function registerForNewBounties (robot) {
 
 async function notifyCollaborators (context, robot) {
   const { github, payload } = context
-  const ownerName = payload.repository.owner.login
-  const repoName = payload.repository.name
+  const repoInfo = { owner: payload.repository.owner.login, repo: payload.repository.name }
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const bountyProjectBoardConfig = config ? config['bounty-project-board'] : null
   const gitHubTeamConfig = config ? config['github-team'] : null
 
   if (!bountyProjectBoardConfig) {
-    robot.log.debug(`${botName} - Bounty project board not configured in repo ${ownerName}/${repoName}, ignoring`)
+    robot.log.debug(`${botName} - Bounty project board not configured in repo ${repoInfo.owner}/${repoInfo.repo}, ignoring`)
     return
   }
 
   if (!gitHubTeamConfig) {
-    robot.log.debug(`${botName} - GitHub team not configured in repo ${ownerName}/${repoName}, ignoring`)
+    robot.log.debug(`${botName} - GitHub team not configured in repo ${repoInfo.owner}/${repoInfo.repo}, ignoring`)
     return
   }
 
@@ -55,9 +54,9 @@ async function notifyCollaborators (context, robot) {
     return null
   }
 
-  robot.log(`${botName} - issue #${payload.issue.number} on ${ownerName}/${repoName} was labeled as a bounty awaiting approval. Pinging slack...`)
+  robot.log(`${botName} - issue #${payload.issue.number} on ${repoInfo.owner}/${repoInfo.repo} was labeled as a bounty awaiting approval. Pinging slack...`)
 
-  const slackCollaborators = await getSlackCollaborators(ownerName, repoName, github, robot, gitHubTeamConfig)
+  const slackCollaborators = await getSlackCollaborators(repoInfo, github, robot, gitHubTeamConfig)
 
   // Mention the project board owner as well, if configured
   const bountyProjectBoardOwner = bountyProjectBoardConfig['owner']
@@ -82,15 +81,15 @@ function randomInt (low, high) {
 }
 
 // Get the Slack IDs of the collaborators of this repo.
-async function getSlackCollaborators (ownerName, repoName, github, robot, gitHubTeamConfig) {
+async function getSlackCollaborators (repoInfo, github, robot, gitHubTeamConfig) {
   const teamSlug = gitHubTeamConfig['slug']
   if (!teamSlug) {
-    robot.log.debug(`${botName} - GitHub team slug not configured in repo ${ownerName}/${repoName}, ignoring`)
+    robot.log.debug(`${botName} - GitHub team slug not configured in repo ${repoInfo.owner}/${repoInfo.repo}, ignoring`)
     return
   }
 
   // Grab a list of collaborators to this repo, as an array of GitHub login usernames
-  const teams = await github.paginate(github.orgs.getTeams({org: ownerName}), res => res.data)
+  const teams = await github.paginate(github.orgs.getTeams({ org: repoInfo.owner }), res => res.data)
   const team = teams.find(t => t.slug === teamSlug)
   if (!team) {
     robot.log.debug(`${botName} - GitHub team with slug ${teamSlug} was not found. Ignoring`)

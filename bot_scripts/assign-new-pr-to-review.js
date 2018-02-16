@@ -10,9 +10,9 @@
 //   PombeirP
 
 const defaultConfig = require('../lib/config')
+const slackHelper = require('../lib/slack')
 
 const getConfig = require('probot-config')
-const slackHelper = require('../lib/slack')
 
 const botName = 'assign-new-pr-to-review'
 
@@ -29,8 +29,7 @@ module.exports = (robot) => {
 async function assignPullRequestToReview (context, robot) {
   const { github, payload } = context
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
-  const ownerName = payload.repository.owner.login
-  const repoName = payload.repository.name
+  const repoInfo = { owner: payload.repository.owner.login, repo: payload.repository.name }
   const prNumber = payload.pull_request.number
 
   const projectBoardConfig = config ? config['project-board'] : null
@@ -38,7 +37,7 @@ async function assignPullRequestToReview (context, robot) {
     return
   }
 
-  robot.log(`${botName} - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
+  robot.log(`${botName} - Handling Pull Request #${prNumber} on repo ${repoInfo.owner}/${repoInfo.repo}`)
 
   // Fetch repo projects
   // TODO: The repo project and project column info should be cached
@@ -47,16 +46,12 @@ async function assignPullRequestToReview (context, robot) {
   const projectBoardName = projectBoardConfig.name
   const reviewColumnName = projectBoardConfig['review-column-name']
   try {
-    const ghprojectsPayload = await github.projects.getRepoProjects({
-      owner: ownerName,
-      repo: repoName,
-      state: 'open'
-    })
+    const ghprojectsPayload = await github.projects.getRepoProjects({ ...repoInfo, state: 'open' })
 
     // Find 'Pipeline for QA' project
     const project = ghprojectsPayload.data.find(p => p.name === projectBoardName)
     if (!project) {
-      robot.log.error(`${botName} - Couldn't find project ${projectBoardName} in repo ${ownerName}/${repoName}`)
+      robot.log.error(`${botName} - Couldn't find project ${projectBoardName} in repo ${repoInfo.owner}/${repoInfo.repo}`)
       return
     }
 
@@ -74,11 +69,11 @@ async function assignPullRequestToReview (context, robot) {
 
       robot.log.debug(`${botName} - Fetched ${column.name} column (${column.id})`)
     } catch (err) {
-      robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
+      robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, repoInfo, project.id)
       return
     }
   } catch (err) {
-    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, repoInfo)
     return
   }
 
