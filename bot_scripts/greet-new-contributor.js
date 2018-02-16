@@ -43,21 +43,19 @@ function executeTemplate (templateString, templateVars) {
 async function greetNewContributor (context, robot) {
   const { github, payload } = context
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
-  const ownerName = payload.repository.owner.login
-  const repoName = payload.repository.name
-  const prNumber = payload.pull_request.number
+  const repoInfo = { owner: payload.repository.owner.login, repo: payload.repository.name }
+  const prInfo = { ...repoInfo, number: payload.pull_request.number }
 
   const welcomeBotConfig = config ? config['welcome-bot'] : null
   if (!welcomeBotConfig) {
     return
   }
 
-  robot.log(`${botName} - Handling Pull Request #${prNumber} on repo ${ownerName}/${repoName}`)
+  robot.log(`${botName} - Handling Pull Request #${prInfo.number} on repo ${repoInfo.owner}/${repoInfo.repo}`)
 
   try {
     const ghissuesPayload = await github.issues.getForRepo({
-      owner: ownerName,
-      repo: repoName,
+      ...repoInfo,
       state: 'all',
       creator: payload.pull_request.user.login
     })
@@ -65,30 +63,28 @@ async function greetNewContributor (context, robot) {
     const userPullRequests = ghissuesPayload.data.filter(issue => issue.pull_request)
     if (userPullRequests.length === 1) {
       try {
-        const welcomeMessage = executeTemplate(welcomeBotConfig['message-template'], { user: payload.pull_request.user.login, 'pr-number': prNumber, 'repo-name': repoName })
+        const welcomeMessage = executeTemplate(welcomeBotConfig['message-template'], { user: payload.pull_request.user.login, 'pr-number': prInfo.number, 'repo-name': repoInfo.repo })
 
         if (process.env.DRY_RUN) {
-          robot.log(`${botName} - Would have created comment in GHI`, ownerName, repoName, prNumber, welcomeMessage)
+          robot.log(`${botName} - Would have created comment in GHI`, prInfo, welcomeMessage)
         } else {
           await github.issues.createComment({
-            owner: ownerName,
-            repo: repoName,
-            number: prNumber,
+            ...prInfo,
             body: welcomeMessage
           })
         }
 
         // Send message to Slack
-        slackHelper.sendMessage(robot, config.slack.notification.room, `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoName} repo\n${payload.pull_request.html_url}`)
+        slackHelper.sendMessage(robot, config.slack.notification.room, `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoInfo.repo} repo\n${payload.pull_request.html_url}`)
       } catch (err) {
         if (err.code !== 404) {
-          robot.log.error(`${botName} - Couldn't create comment on PR: ${err}`, ownerName, repoName)
+          robot.log.error(`${botName} - Couldn't create comment on PR: ${err}`, repoInfo)
         }
       }
     } else {
-      robot.log.debug(`${botName} - This is not the user's first PR on the repo, ignoring`, ownerName, repoName, payload.pull_request.user.login)
+      robot.log.debug(`${botName} - This is not the user's first PR on the repo, ignoring`, repoInfo, payload.pull_request.user.login)
     }
   } catch (err) {
-    robot.log.error(`${botName} - Couldn't fetch the user's github issues for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`${botName} - Couldn't fetch the user's github issues for repo: ${err}`, repoInfo)
   }
 }

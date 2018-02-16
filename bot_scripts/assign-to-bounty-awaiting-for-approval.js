@@ -36,8 +36,7 @@ module.exports = (robot) => {
 
 async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   const { github, payload } = context
-  const ownerName = payload.repository.owner.login
-  const repoName = payload.repository.name
+  const repoInfo = { owner: payload.repository.owner.login, repo: payload.repository.name }
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const projectBoardConfig = config ? config['bounty-project-board'] : null
 
@@ -52,9 +51,9 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   }
 
   if (assign) {
-    robot.log(`${botName} - Handling labeling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
+    robot.log(`${botName} - Handling labeling of #${payload.issue.number} with ${payload.label.name} on repo ${repoInfo.owner}/${repoInfo.repo}`)
   } else {
-    robot.log(`${botName} - Handling unlabeling of #${payload.issue.number} with ${payload.label.name} on repo ${ownerName}/${repoName}`)
+    robot.log(`${botName} - Handling unlabeling of #${payload.issue.number} with ${payload.label.name} on repo ${repoInfo.owner}/${repoInfo.repo}`)
   }
 
   // Fetch org projects
@@ -64,7 +63,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   const projectBoardName = projectBoardConfig.name
   const approvalColumnName = projectBoardConfig['awaiting-approval-column-name']
   try {
-    const orgName = ownerName
+    const orgName = repoInfo.owner
 
     const ghprojectsPayload = await github.projects.getOrgProjects({
       org: orgName,
@@ -92,11 +91,11 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
       robot.log.debug(`${botName} - Fetched ${column.name} column (${column.id})`)
     } catch (err) {
-      robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, ownerName, repoName, project.id)
+      robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, repoInfo, project.id)
       return
     }
   } catch (err) {
-    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, ownerName, repoName)
+    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, repoInfo)
     return
   }
 

@@ -3,18 +3,7 @@ const Slack = require('./lib/slack')
 module.exports = async (robot) => {
   console.log('Yay, the app was loaded!')
 
-  Slack(robot, slack => {})
-
-  await new Promise(resolve => {
-    robot.on('slack.connected', event => {
-      robot.log.info(`Connected to Slack`)
-
-      // Copy Slack RTM and Slack Web clients to the robot object
-      robot['slack'] = event.payload.slack
-      robot['slackWeb'] = event.payload.slackWeb
-      resolve()
-    })
-  })
+  await setupSlack(robot)
 
   robot['gitHubIdMapper'] = require('./lib/github-id-mapper')(robot)
 
@@ -31,4 +20,20 @@ module.exports = async (robot) => {
 
   // To get your app running against GitHub, see:
   // https://probot.github.io/docs/development/
+}
+
+async function setupSlack (robot) {
+  Slack(robot, slack => {})
+
+  await new Promise(resolve => {
+    robot.on('slack.connected', event => {
+      robot.log.info(`Connected to Slack`)
+
+      // Copy Slack RTM and Slack Web clients to the robot object
+      robot['slack'] = event.payload.slack
+      robot['slackWeb'] = event.payload.slackWeb
+
+      resolve()
+    })
+  })
 }
