@@ -1,0 +1,6 @@
+notify-reviewers-via-slack:
+  globallyEnabled: true
+  repoConfig:
+    status-im/status-react:
+      disabled-users: ["flexsurfer"]
+      disabled: true

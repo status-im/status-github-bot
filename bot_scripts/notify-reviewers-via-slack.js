@@ -8,6 +8,7 @@
 //   Martin Klepsch (martinklepsch)
 
 const slackHelper = require('../lib/slack')
+const config = require('../lib/config')
 
 const botName = 'notify-reviewers-via-slack'
 
@@ -21,7 +22,13 @@ function registerForNewReviewRequests (robot) {
     // Make sure we don't listen to our own messages
     if (context.isBot) return null
 
-    await notifyReviewer(context, robot)
+    const repoName = `${context.payload.repository.owner.login}/${context.payload.repository.name}`
+
+    if (config.enabledForRepo(botName, repoName)) {
+      await notifyReviewer(context, robot)
+    } else {
+      robot.log.info(`${botName} not runing for repo: ${repoName}`)
+    }
   })
 }
 
