@@ -56,46 +56,11 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     robot.log(`${botName} - Handling unlabeling of #${payload.issue.number} with ${payload.label.name} on repo ${repoInfo.owner}/${repoInfo.repo}`)
   }
 
-  // Fetch org projects
-  // TODO: The org project and project column info should be cached
-  // in order to improve performance and reduce roundtrips
-  let column = null
-  const projectBoardName = projectBoardConfig.name
+  // Fetch bounty-awaiting-approval column in project board
   const approvalColumnName = projectBoardConfig['awaiting-approval-column-name']
-  try {
-    const orgName = repoInfo.owner
-
-    const ghprojectsPayload = await github.projects.getOrgProjects({
-      org: orgName,
-      state: 'open'
-    })
-
-    // Find 'Status SOB Swarm' project
-    const project = ghprojectsPayload.data.find(p => p.name === projectBoardName)
-    if (!project) {
-      robot.log.error(`${botName} - Couldn't find project ${projectBoardName} in ${orgName} org`)
-      return
-    }
-
-    robot.log.debug(`${botName} - Fetched ${project.name} project (${project.id})`)
-
-    // Fetch bounty-awaiting-approval column ID
-    try {
-      const ghcolumnsPayload = await github.projects.getProjectColumns({ project_id: project.id })
-
-      column = ghcolumnsPayload.data.find(c => c.name === approvalColumnName)
-      if (!column) {
-        robot.log.error(`${botName} - Couldn't find ${approvalColumnName} column in project ${project.name}`)
-        return
-      }
-
-      robot.log.debug(`${botName} - Fetched ${column.name} column (${column.id})`)
-    } catch (err) {
-      robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, repoInfo, project.id)
-      return
-    }
-  } catch (err) {
-    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, repoInfo)
+  const project = await gitHubHelpers.getOrgProjectByName(github, robot, repoInfo.owner, projectBoardConfig.name, botName)
+  const column = await gitHubHelpers.getProjectColumnByName(github, robot, project, approvalColumnName, botName)
+  if (!column) {
     return
   }
 
@@ -136,20 +101,21 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     }
   }
 
-  let message
-  // Send message to Slack
+  const slackMessage = getSlackMessage(projectBoardConfig.name, approvalColumnName, payload, assign, isOfficialBounty)
+  if (slackMessage && !process.env.DRY_RUN_BOUNTY_APPROVAL) {
+    // Send message to Slack
+    slackHelper.sendMessage(robot, config.slack.notification.room, slackMessage)
+  }
+}
+
+function getSlackMessage (projectBoardName, approvalColumnName, payload, assign, isOfficialBounty) {
   if (assign) {
-    message = `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
+    return `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
   } else {
     if (isOfficialBounty) {
-      message = `${payload.issue.html_url} has been approved as an official bounty!`
+      return `${payload.issue.html_url} has been approved as an official bounty!`
     } else {
-      message = `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
+      return `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
     }
-  }
-
-  if (message && !process.env.DRY_RUN_BOUNTY_APPROVAL) {
-    // Send message to Slack
-    slackHelper.sendMessage(robot, config.slack.notification.room, message)
   }
 }

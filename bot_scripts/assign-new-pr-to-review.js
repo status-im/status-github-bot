@@ -11,6 +11,7 @@
 
 const defaultConfig = require('../lib/config')
 const slackHelper = require('../lib/slack')
+const gitHubHelpers = require('../lib/github-helpers')
 
 const getConfig = require('probot-config')
 
@@ -39,41 +40,13 @@ async function assignPullRequestToReview (context, robot) {
 
   robot.log(`${botName} - Handling Pull Request #${prNumber} on repo ${repoInfo.owner}/${repoInfo.repo}`)
 
-  // Fetch repo projects
-  // TODO: The repo project and project column info should be cached
-  // in order to improve performance and reduce roundtrips
-  let column = null
   const projectBoardName = projectBoardConfig.name
   const reviewColumnName = projectBoardConfig['review-column-name']
-  try {
-    const ghprojectsPayload = await github.projects.getRepoProjects({ ...repoInfo, state: 'open' })
-
-    // Find 'Pipeline for QA' project
-    const project = ghprojectsPayload.data.find(p => p.name === projectBoardName)
-    if (!project) {
-      robot.log.error(`${botName} - Couldn't find project ${projectBoardName} in repo ${repoInfo.owner}/${repoInfo.repo}`)
-      return
-    }
-
-    robot.log.debug(`${botName} - Fetched ${project.name} project (${project.id})`)
-
-    // Fetch REVIEW column ID
-    try {
-      const ghcolumnsPayload = await github.projects.getProjectColumns({ project_id: project.id })
-
-      column = ghcolumnsPayload.data.find(c => c.name === reviewColumnName)
-      if (!column) {
-        robot.log.error(`${botName} - Couldn't find ${reviewColumnName} column in project ${project.name}`)
-        return
-      }
-
-      robot.log.debug(`${botName} - Fetched ${column.name} column (${column.id})`)
-    } catch (err) {
-      robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, repoInfo, project.id)
-      return
-    }
-  } catch (err) {
-    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, repoInfo)
+  // Find 'Pipeline for QA' project
+  const project = await gitHubHelpers.getRepoProjectByName(github, robot, repoInfo, projectBoardName, botName)
+  // Fetch REVIEW column ID
+  const column = await gitHubHelpers.getProjectColumnByName(github, robot, project, reviewColumnName, botName)
+  if (!column) {
     return
   }
 

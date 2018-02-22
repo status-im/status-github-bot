@@ -24,12 +24,6 @@ module.exports = robot => {
   robot.on('schedule.repository', context => checkOpenPullRequests(robot, context))
 }
 
-async function getProjectFromName (github, repoInfo, projectBoardName) {
-  const ghprojectsPayload = await github.projects.getRepoProjects({ ...repoInfo, state: 'open' })
-
-  return ghprojectsPayload.data.find(p => p.name === projectBoardName)
-}
-
 async function checkOpenPullRequests (robot, context) {
   const { github, payload } = context
   const repo = payload.repository
@@ -46,21 +40,9 @@ async function checkOpenPullRequests (robot, context) {
   const reviewColumnName = projectBoardConfig['review-column-name']
   const testColumnName = projectBoardConfig['test-column-name']
 
-  // Fetch repo projects
-  // TODO: The repo project and project column info should be cached
-  // in order to improve performance and reduce roundtrips
-  let project
-  try {
-    // Find 'Pipeline for QA' project
-    project = await getProjectFromName(github, repoInfo, projectBoardConfig.name)
-    if (!project) {
-      robot.log.error(`${botName} - Couldn't find project ${projectBoardConfig.name} in repo ${repoInfo.owner}/${repoInfo.repo}`)
-      return
-    }
-
-    robot.log.debug(`${botName} - Fetched ${project.name} project (${project.id})`)
-  } catch (err) {
-    robot.log.error(`${botName} - Couldn't fetch the github projects for repo: ${err}`, repoInfo)
+  // Find 'Pipeline for QA' project
+  const project = await gitHubHelpers.getRepoProjectByName(github, robot, repoInfo, projectBoardConfig.name, botName)
+  if (!project) {
     return
   }
 
