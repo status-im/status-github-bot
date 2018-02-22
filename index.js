@@ -23,7 +23,7 @@ module.exports = async (robot) => {
 }
 
 async function setupSlack (robot) {
-  Slack(robot, slack => {})
+  Slack.setup(robot, slack => {})
 
   await new Promise(resolve => {
     robot.on('slack.connected', event => {
