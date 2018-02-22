@@ -105,6 +105,14 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   if (slackMessage && !process.env.DRY_RUN_BOUNTY_APPROVAL) {
     // Send message to Slack
     slackHelper.sendMessage(robot, config.slack.notification.room, slackMessage)
+
+    // Cross-post approved bounties to a predefined room
+    if (!assign && isOfficialBounty) {
+      const slackRoom = projectBoardConfig['post-approved-bounties-to-slack-room']
+      if (slackRoom) {
+        slackHelper.sendMessage(robot, slackRoom, slackMessage)
+      }
+    }
   }
 }
 
