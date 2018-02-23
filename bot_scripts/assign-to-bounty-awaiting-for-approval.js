@@ -66,6 +66,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
   const bountyLabelName = projectBoardConfig['bounty-label-name']
   const isOfficialBounty = !!payload.issue.labels.find(l => l.name === bountyLabelName)
+  const bountySize = getBountySize(payload.issue.labels, projectBoardConfig)
 
   if (process.env.DRY_RUN) {
     if (assign) {
@@ -101,7 +102,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     }
   }
 
-  const slackMessage = getSlackMessage(projectBoardConfig.name, approvalColumnName, payload, assign, isOfficialBounty)
+  const slackMessage = getSlackMessage(projectBoardConfig.name, approvalColumnName, payload, assign, isOfficialBounty, bountySize)
   if (slackMessage && !process.env.DRY_RUN_BOUNTY_APPROVAL) {
     // Send message to Slack
     slackHelper.sendMessage(robot, config.slack.notification.room, slackMessage)
@@ -116,14 +117,33 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   }
 }
 
-function getSlackMessage (projectBoardName, approvalColumnName, payload, assign, isOfficialBounty) {
+function getSlackMessage (projectBoardName, approvalColumnName, payload, assign, isOfficialBounty, bountySize) {
   if (assign) {
     return `Assigned issue to ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
-  } else {
-    if (isOfficialBounty) {
-      return `${payload.issue.html_url} has been approved as an official bounty!`
-    } else {
-      return `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
-    }
   }
+
+  if (!isOfficialBounty) {
+    return `Unassigned issue from ${approvalColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
+  }
+
+  if (bountySize) {
+    return `${payload.issue.html_url} has been approved as an official bounty (size: ${bountySize})!`
+  }
+  return `${payload.issue.html_url} has been approved as an official bounty!`
+}
+
+function getBountySize (labels, projectBoardConfig) {
+  const regexString = projectBoardConfig['bounty-size-label-name-regex']
+  if (!regexString) {
+    return null
+  }
+
+  const bountySizeLabelRegex = new RegExp(regexString)
+
+  const match = labels.map(l => bountySizeLabelRegex.exec(l.name)).find(m => m != null)
+  if (match) {
+    return match[1]
+  }
+
+  return null
 }

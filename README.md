@@ -118,6 +118,7 @@ Examples of settings that can be configured:
   - `bounty-project-board/awaiting-approval-column-name`: Name of the column in the bounty project board to group issues that are awaiting for bounty approval
   - `bounty-project-board/awaiting-approval-label-name`: Name of the label used in issues to declare that an issue is awaiting approval to become a bounty
   - `bounty-project-board/bounty-label-name`: Name of the label used in issues to declare that an issue is a bounty
+  - `bounty-project-board/bounty-size-label-name-regex`: Regular expression that matches the bounty size label and returns a group containing the size itself
   - `bounty-project-board/post-approved-bounties-to-slack-room`: Name of the Slack room where to cross-post approved bounties 
 
 - Automated tests settings:
