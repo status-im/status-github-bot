@@ -36,6 +36,7 @@ async function checkOpenPullRequests (robot, context) {
     return
   }
 
+  const testedPullRequestLabelName = projectBoardConfig['tested-pr-label-name']
   const contributorColumnName = projectBoardConfig['contributor-column-name']
   const reviewColumnName = projectBoardConfig['review-column-name']
   const testColumnName = projectBoardConfig['test-column-name']
@@ -74,7 +75,7 @@ async function checkOpenPullRequests (robot, context) {
       for (const pullRequest of allPullRequests) {
         try {
           const columns = { contributor: contributorColumn, review: reviewColumn, test: testColumn }
-          await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, columns, config.slack.notification.room)
+          await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, columns, testedPullRequestLabelName, config.slack.notification.room)
         } catch (err) {
           robot.log.error(`${botName} - Unhandled exception while processing PR: ${err}`, repoInfo)
         }
@@ -87,12 +88,12 @@ async function checkOpenPullRequests (robot, context) {
   }
 }
 
-async function assignPullRequestToCorrectColumn (github, robot, repo, pullRequest, columns, room) {
+async function assignPullRequestToCorrectColumn (github, robot, repo, pullRequest, testedPullRequestLabelName, columns, room) {
   const prInfo = { owner: repo.owner.login, repo: repo.name, number: pullRequest.number }
 
   let state = null
   try {
-    state = await gitHubHelpers.getReviewApprovalState(github, robot, prInfo)
+    state = await gitHubHelpers.getReviewApprovalState(github, robot, prInfo, testedPullRequestLabelName)
   } catch (err) {
     robot.log.error(`${botName} - Couldn't calculate the PR approval state: ${err}`, prInfo)
   }

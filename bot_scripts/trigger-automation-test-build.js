@@ -106,7 +106,7 @@ async function processPullRequest (github, robot, prInfo, fullJobName) {
   pendingPullRequests.delete(prInfo.number)
 
   try {
-    const state = await gitHubHelpers.getReviewApprovalState(github, robot, prInfo)
+    const state = await gitHubHelpers.getReviewApprovalState(github, robot, prInfo, null)
 
     switch (state) {
       case 'unstable':
