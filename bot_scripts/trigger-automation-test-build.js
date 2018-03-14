@@ -87,7 +87,7 @@ async function processChangedProjectCard (robot, context) {
     const projectPayload = await github.projects.getProject({ id: projectId })
     const project = projectPayload.data
     if (project.name !== projectBoardName) {
-      robot.log.trace(`${botName} - Card column name doesn't match watched column name, exiting`, project.name, projectBoardName)
+      robot.log.trace(`${botName} - Project board name doesn't match watched project board, exiting`, project.name, projectBoardName)
       return
     }
   } catch (error) {

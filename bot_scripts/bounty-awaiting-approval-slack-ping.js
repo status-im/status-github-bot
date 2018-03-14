@@ -50,7 +50,7 @@ async function notifyCollaborators (context, robot) {
 
   const watchedLabelName = bountyProjectBoardConfig['awaiting-approval-label-name']
   if (payload.label.name !== watchedLabelName) {
-    robot.log.debug(`${botName} - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
+    robot.log.debug(`${botName} - '${payload.label.name}' doesn't match watched '${watchedLabelName}' label. Ignoring`)
     return null
   }
 

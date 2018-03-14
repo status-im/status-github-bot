@@ -1,6 +1,7 @@
 // Description:
-//   Script that listens to new labels on GitHub issues
-//   and assigns the issues to the bounty-awaiting-approval column on the 'Status SOB Swarm' project
+//   Script that listens to labeling/unlabeling on GitHub issues with 'bounty-awaiting-approval'
+//   and respectively assigns the issues to the bounty-awaiting-approval column on the 'Status SOB Swarm' project
+//   or removes the card from project board
 //
 // Dependencies:
 //   github: "^13.1.0"
@@ -46,7 +47,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
 
   const watchedLabelName = projectBoardConfig['awaiting-approval-label-name']
   if (payload.label.name !== watchedLabelName) {
-    robot.log.debug(`${botName} - ${payload.label.name} doesn't match watched ${watchedLabelName} label. Ignoring`)
+    robot.log.debug(`${botName} - '${payload.label.name}' doesn't match watched '${watchedLabelName}' label. Ignoring`)
     return
   }
 
