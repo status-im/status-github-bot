@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@slack/client": "^3.16.0",
-    "eslint": "^4.17.0",
+    "axios": "^0.18.0",
+    "eslint": "^4.19.1",
+    "ethers": "^3.0.8",
     "hashmap": "^2.3.0",
     "hashset": "0.0.6",
     "jenkins": "^0.20.1",

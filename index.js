@@ -1,4 +1,16 @@
+// Description:
+//   Startup script
+//
+// Dependencies:
+//   mem-cache: "0.0.5"
+//   memjs: "^1.2.0"
+//   @slack/client: "^3.16.0"
+//
+// Author:
+//   PombeirP
+
 const Slack = require('./lib/slack')
+const memjs = require('memjs')
 
 module.exports = async (robot) => {
   console.log('Yay, the app was loaded!')
@@ -11,6 +23,7 @@ module.exports = async (robot) => {
     robot.log.trace = console.log
   }
 
+  setupMemcache(robot)
   await setupSlack(robot)
 
   robot['slackProfileCache'] = require('./lib/slack-profile-cache')(robot)
@@ -23,6 +36,7 @@ module.exports = async (robot) => {
   require('./bot_scripts/trigger-automation-test-build')(robot)
   require('./bot_scripts/bounty-awaiting-approval-slack-ping')(robot)
   require('./bot_scripts/notify-reviewers-via-slack')(robot)
+  require('./bot_scripts/tip-kudos-recipients')(robot)
 
   // For more information on building apps:
   // https://probot.github.io/docs/
@@ -45,4 +59,19 @@ async function setupSlack (robot) {
       resolve()
     })
   })
+}
+
+function setupMemcache (robot) {
+  // Environment variables are defined in .env
+  let MEMCACHE_URL = process.env.MEMCACHE_URL || '127.0.0.1:11211'
+  if (process.env.USE_GAE_MEMCACHE) {
+    MEMCACHE_URL = `${process.env.GAE_MEMCACHE_HOST}:${process.env.GAE_MEMCACHE_PORT}`
+  }
+  const mc = memjs.Client.create(MEMCACHE_URL, {
+    username: process.env.MEMCACHE_USERNAME,
+    password: process.env.MEMCACHE_PASSWORD
+  })
+
+  // Copy memcache client to the robot object
+  robot['memcache'] = mc
 }
