@@ -28,7 +28,7 @@ function registerForNewReviewRequests (robot) {
 async function notifyReviewer (context, robot) {
   const { payload } = context
   const reviewer = payload.requested_reviewer
-  const userID = await robot.gitHubIdMapper.getSlackIdFromGitHubId(reviewer.login)
+  const userID = await robot.slackProfileCache.getSlackIdFromGitHubId(reviewer.login)
 
   if (!userID) {
     robot.log.warn('Could not find Slack ID for GitHub user', reviewer.login)

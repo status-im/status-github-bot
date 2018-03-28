@@ -13,7 +13,7 @@ module.exports = async (robot) => {
 
   await setupSlack(robot)
 
-  robot['gitHubIdMapper'] = require('./lib/github-id-mapper')(robot)
+  robot['slackProfileCache'] = require('./lib/slack-profile-cache')(robot)
 
   require('./bot_scripts/assign-new-pr-to-review')(robot)
   require('./bot_scripts/assign-approved-pr-to-test')(robot)

@@ -61,7 +61,7 @@ async function notifyCollaborators (context, robot) {
   // Mention the project board owner as well, if configured
   const bountyProjectBoardOwner = bountyProjectBoardConfig['owner']
   if (bountyProjectBoardOwner) {
-    const slackUserMention = robot.gitHubIdMapper.getSlackMentionFromGitHubId(bountyProjectBoardOwner)
+    const slackUserMention = robot.slackProfileCache.getSlackMentionFromGitHubId(bountyProjectBoardOwner)
     if (slackUserMention) {
       slackCollaborators.push(slackUserMention)
     }
@@ -102,7 +102,7 @@ async function getSlackCollaborators (repoInfo, github, robot, gitHubTeamConfig)
   const gitHubUsers = teamMembers.map(u => u.login)
   const slackUsers = new HashSet()
   for (const gitHubUser of gitHubUsers) {
-    const id = await robot.gitHubIdMapper.getSlackMentionFromGitHubId(gitHubUser)
+    const id = await robot.slackProfileCache.getSlackMentionFromGitHubId(gitHubUser)
     if (id) {
       slackUsers.add(id)
     }
