@@ -22,7 +22,10 @@
             "program": "${workspaceFolder}/node_modules/probot/bin/probot-run.js",
             "args": [
                 "${workspaceFolder}/index.js"
-            ]
+            ],
+            "env": {
+                "DEBUG": "true"
+            }
         },
         {
             "type": "node",

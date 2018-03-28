@@ -2,6 +2,14 @@ const Slack = require('./lib/slack')
 
 module.exports = async (robot) => {
   console.log('Yay, the app was loaded!')
+  if (process.env.DEBUG) {
+    // HACK: If we're attached to the debugger, send output to console
+    robot.log.error = console.log
+    robot.log.warn = console.log
+    robot.log.info = console.log
+    robot.log.debug = console.log
+    robot.log.trace = console.log
+  }
 
   await setupSlack(robot)
 
