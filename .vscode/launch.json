@@ -24,7 +24,11 @@
                 "${workspaceFolder}/index.js"
             ],
             "env": {
-                "DEBUG": "true"
+                "DEBUG": "true",
+                "KUDOS_BOT_CONFIG": "{'options':{'process_whole_history':true},'slack':{'channel_id':'C8P4F6WTB'},'rules':{'tip_per_kudo_in_usd':0.02,'tip_per_reaction_in_usd':0.001,'reaction_threshold':3},'payments':{'STT':{'network_id':'ropsten','private_key':'0xaaaa','contract_address':'0xc55cF4B03948D7EBc8b9E8BAD92643703811d162'},'SNT':{'network_id':'homestead','private_key':'0xaaaa','contract_address':'0x744d70FDBE2Ba4CF95131626614a1763DF805B9E'}}}",
+                "MEMCACHE_URL": "",
+                "MEMCACHE_USERNAME": "",
+                "MEMCACHE_PASSWORD": ""
             }
         },
         {

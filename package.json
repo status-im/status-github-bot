@@ -16,6 +16,7 @@
     "hashset": "0.0.6",
     "jenkins": "^0.20.1",
     "mem-cache": "0.0.5",
+    "memjs": "^1.2.0",
     "probot": "^5.0.0",
     "probot-config": "^0.1.0",
     "probot-gpg-status": "^0.5.4",
