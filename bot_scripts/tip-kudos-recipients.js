@@ -78,9 +78,8 @@ async function getSavedData (mc) {
   }
 
   return {
-    lastMessageTimestamp: (new Date(2017, 1, 1)).getTime() / 1000,
-    userPendingPayouts: {
-    }
+    lastMessageTimestamp: (new Date()).getTime() / 1000,
+    userPendingPayouts: {}
   }
 }
 
