@@ -76,6 +76,13 @@ async function greetNewContributor (context, robot) {
 
         // Send message to Slack
         slackHelper.sendMessage(robot, config.slack.notification.room, `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoInfo.repo} repo\n${payload.pull_request.html_url}`)
+
+        const slackRecipients = welcomeBotConfig['slack-recipients']
+        if (slackRecipients) {
+          for (const userID of slackRecipients) {
+            await notifySlackRecipient(robot, userID, payload, repoInfo)
+          }
+        }
       } catch (err) {
         if (err.code !== 404) {
           robot.log.error(`${botName} - Couldn't create comment on PR: ${err}`, repoInfo)
@@ -86,5 +93,21 @@ async function greetNewContributor (context, robot) {
     }
   } catch (err) {
     robot.log.error(`${botName} - Couldn't fetch the user's github issues for repo: ${err}`, repoInfo)
+  }
+}
+
+async function notifySlackRecipient (robot, userID, payload, repoInfo) {
+  try {
+    const resp = await robot.slackWeb.im.open(userID)
+
+    const dmChannelID = resp.channel.id
+    const msg = `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoInfo.repo} repo\n${payload.pull_request.html_url}`
+
+    robot.log.info(`${botName} - Opened DM Channel ${dmChannelID}`)
+    robot.log.info(`Notifying ${userID} about user's first PM in ${payload.pull_request.url}`)
+
+    robot.slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
+  } catch (error) {
+    robot.log.warn('Could not open DM channel for new user\'s first PM notification', error)
   }
 }
