@@ -51,7 +51,7 @@ async function processKudosChannelUpdates (robot) {
   isCheckingUpdates = true
   try {
     const mc = robot['memcache']
-    const data = await getSavedData(mc)
+    const data = await getSavedData(robot, mc)
 
     await fetchPendingKudos(robot, data)
 
@@ -67,13 +67,14 @@ async function processKudosChannelUpdates (robot) {
   }
 }
 
-async function getSavedData (mc) {
+async function getSavedData (robot, mc) {
   const json = await mc.get(kudosBotDataMemcachedKey)
   if (json.value) {
     const data = JSON.parse(json.value)
     if (!data.hasOwnProperty('lastMessageTimestamp') || !data.hasOwnProperty('userPendingPayouts')) {
       throw new Error(`${botName} - Invalid cached data`)
     }
+    robot.log.debug(`${botName} - Loaded existing state: lastMessageTimestamp=${new Date(data.lastMessageTimestamp * 1000).toISOString()}`)
     return data
   }
 
@@ -100,11 +101,6 @@ async function fetchPendingKudos (robot, data) {
   while (true) {
     const historyPayload = await slackWeb.channels.history(kudosChannelId, { oldest: data.lastMessageTimestamp })
     if (historyPayload.ok) {
-      if (!historyPayload.has_more && newMessagesProcessed === 0) {
-        robot.log.debug(`${botName} - No new entries in ${kudosChannelId} channel history`)
-        break
-      }
-
       for (const message of historyPayload.messages.reverse()) {
         const messageTs = parseFloat(message.ts)
         if (messageTs >= thresholdTs) {
@@ -154,7 +150,11 @@ async function fetchPendingKudos (robot, data) {
       }
 
       if (!historyPayload.has_more) {
-        robot.log.debug(`${botName} - Reached end of ${kudosChannelId} channel history`)
+        if (newMessagesProcessed === 0) {
+          robot.log.debug(`${botName} - No new entries in ${kudosChannelId} channel history`)
+        } else {
+          robot.log.debug(`${botName} - Reached end of ${kudosChannelId} channel history`)
+        }
         break
       }
     } else {
