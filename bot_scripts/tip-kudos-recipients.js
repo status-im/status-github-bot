@@ -28,6 +28,7 @@ const contractAddress = token.contract_address
 const kudosBotDataMemcachedKey = 'tip-kudos-recipients-data'
 const userIdRegex = /@[A-Z0-9]+/gi
 var isCheckingUpdates = false
+var previousNonce = null
 
 module.exports = robot => {
   if (!privateKey.startsWith('0x')) {
@@ -204,11 +205,15 @@ async function processPendingPayments (robot, data, saveStateAsyncFunc) {
       try {
         const transaction = await tokenPayments.transfer(contract, wallet, pubkey, (process.env.DEBUG ? '0.0001' : tokenBalance.toString()))
 
-        // Reset the outstanding payout values
-        delete data.userPendingPayouts[slackUserId]
-        robot.log.info(`${botName} - Made payment to @${slackUsername} (https://etherscan.io/tx/${transaction.hash}): ${JSON.stringify(transaction)}`)
+        // Ignore transactions with the same nonce as the previous one (since those don't seem to be valid and don't appear on etherscan.io)
+        if (transaction.nonce !== previousNonce) {
+          // Reset the outstanding payout values
+          delete data.userPendingPayouts[slackUserId]
+          robot.log.info(`${botName} - Made payment to @${slackUsername} (https://etherscan.io/tx/${transaction.hash}): ${JSON.stringify(transaction)}`)
+          previousNonce = transaction.nonce
 
-        await saveStateAsyncFunc(data)
+          await saveStateAsyncFunc(data)
+        }
       } catch (error) {
         robot.log.warn(`${botName} - Failed to make payment to @${slackUsername}: ${error}`)
       }
