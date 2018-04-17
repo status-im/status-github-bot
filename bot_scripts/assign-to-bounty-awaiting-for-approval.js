@@ -42,6 +42,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
   const projectBoardConfig = config ? config['bounty-project-board'] : null
 
   if (!projectBoardConfig) {
+    robot.log.debug(`${botName} - Bounty project board not configured in repo ${repoInfo.owner}/${repoInfo.repo}, ignoring`)
     return
   }
 
