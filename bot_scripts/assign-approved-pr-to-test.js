@@ -20,7 +20,7 @@ const slackHelper = require('../lib/slack')
 const botName = 'assign-approved-pr-to-test'
 
 module.exports = robot => {
-  createScheduler(robot, { interval: 10 * 60 * 1000 })
+  createScheduler(robot, { interval: 10 * 60 * 1000, delay: !process.env.DISABLE_DELAY })
   robot.on('schedule.repository', context => checkOpenPullRequests(robot, context))
 }
 
@@ -100,6 +100,7 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
 
   const { srcColumns, dstColumn } = getColumns(state, columns)
   if (!dstColumn) {
+    robot.log.debug(`${botName} - No dstColumn, state=${state}, columns=${JSON.stringify(columns)}, srcColumns=${srcColumns}`)
     return
   }
 
