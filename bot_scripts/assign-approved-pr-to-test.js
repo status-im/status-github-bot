@@ -61,6 +61,7 @@ async function checkOpenPullRequests (robot, context) {
     const contributorColumn = findColumnByName(ghcolumns, contributorColumnName)
     const reviewColumn = findColumnByName(ghcolumns, reviewColumnName)
     const testColumn = findColumnByName(ghcolumns, testColumnName)
+    const columns = { contributor: contributorColumn, review: reviewColumn, test: testColumn }
 
     robot.log.debug(`${botName} - Fetched ${contributorColumn.name} (${contributorColumn.id}), ${reviewColumn.name} (${reviewColumn.id}), ${testColumn.name} (${testColumn.id}) columns`)
 
@@ -74,8 +75,7 @@ async function checkOpenPullRequests (robot, context) {
       // And make sure they are assigned to the correct project column
       for (const pullRequest of allPullRequests) {
         try {
-          const columns = { contributor: contributorColumn, review: reviewColumn, test: testColumn }
-          await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, columns, testedPullRequestLabelName, config.slack.notification.room)
+          await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, testedPullRequestLabelName, columns, config.slack.notification.room)
         } catch (err) {
           robot.log.error(`${botName} - Unhandled exception while processing PR: ${err}`, repoInfo)
         }
