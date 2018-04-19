@@ -19,7 +19,7 @@ const tipPerKudoInUsd = parseFloat(options.rules.tip_per_kudo_in_usd)
 const tipPerReactionInUsd = parseFloat(options.rules.tip_per_reaction_in_usd)
 const reactionThreshold = parseInt(options.rules.reaction_threshold)
 const interTransactionDelay = parseInt(options.options.inter_transaction_delay)
-const paymentPeriodicityInDays = parseInt(options.options.payment_periodicity_in_days)
+const paymentPeriodicityInSecs = parseInt(options.options.payment_periodicity_in_days) * 24 * 60 * 60
 
 const tokenID = process.env.DEBUG ? 'STT' : 'SNT'
 const token = options.payments[tokenID]
@@ -37,8 +37,9 @@ module.exports = robot => {
     return
   }
 
+  robot.log.info(`${botName} - Repeating script every ${paymentPeriodicityInSecs / 24 * 60 * 60} days`)
   setTimeout(() => processKudosChannelUpdates(robot), process.env.DISABLE_DELAY ? 1 * 1000 : 30 * 1000)
-  setInterval(() => processKudosChannelUpdates(robot), paymentPeriodicityInDays * 24 * 60 * 60 * 1000)
+  setInterval(() => processKudosChannelUpdates(robot), 24 * 60 * 60 * 1000)
 }
 
 function getOptions (optionsString) {
@@ -82,6 +83,7 @@ async function getSavedData (robot, mc) {
 
   return {
     lastMessageTimestamp: (new Date()).getTime() / 1000,
+    lastPayoutProcessingTimestamp: 1,
     userPendingPayouts: {}
   }
 }
@@ -173,6 +175,15 @@ async function processPendingPayments (robot, data, saveStateAsyncFunc) {
     return
   }
 
+  if (!data.lastPayoutProcessingTimestamp) {
+    data.lastPayoutProcessingTimestamp = (new Date()).getTime() / 1000
+  }
+
+  const now = (new Date()).getTime() / 1000
+  if ((now - data.lastPayoutProcessingTimestamp) < paymentPeriodicityInSecs) {
+    return
+  }
+
   const tokenPrice = await getTokenPrice(tokenID)
   const slackProfileCache = robot['slackProfileCache']
 
@@ -225,6 +236,9 @@ async function processPendingPayments (robot, data, saveStateAsyncFunc) {
       }
     }
   }
+
+  data.lastPayoutProcessingTimestamp = (new Date()).getTime() / 1000
+
   robot.log.debug(`Total payments: ${totalPayments} ${tokenID}`)
 }
 
