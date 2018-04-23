@@ -79,8 +79,8 @@ async function greetNewContributor (context, robot) {
 
         const slackRecipients = welcomeBotConfig['slack-recipients']
         if (slackRecipients) {
-          for (const userID of slackRecipients) {
-            await notifySlackRecipient(robot, userID, payload, repoInfo)
+          for (const slackUsername of slackRecipients) {
+            await notifySlackRecipient(robot, slackUsername, payload, repoInfo)
           }
         }
       } catch (err) {
@@ -96,18 +96,20 @@ async function greetNewContributor (context, robot) {
   }
 }
 
-async function notifySlackRecipient (robot, userID, payload, repoInfo) {
+async function notifySlackRecipient (robot, slackUsername, payload, repoInfo) {
   try {
+    const slackProfileCache = robot['slackProfileCache']
+    const userID = await slackProfileCache.getSlackIdFromSlackUsername(slackUsername)
     const resp = await robot.slackWeb.im.open(userID)
 
     const dmChannelID = resp.channel.id
     const msg = `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoInfo.repo} repo\n${payload.pull_request.html_url}`
 
     robot.log.info(`${botName} - Opened DM Channel ${dmChannelID}`)
-    robot.log.info(`Notifying ${userID} about user's first PM in ${payload.pull_request.url}`)
+    robot.log.info(`Notifying ${slackUsername} about user's first PM in ${payload.pull_request.url}`)
 
     robot.slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
   } catch (error) {
-    robot.log.warn('Could not open DM channel for new user\'s first PM notification', error)
+    robot.log.warn(`Could not open DM channel to ${slackUsername} for new user's first PM notification`, error)
   }
 }
