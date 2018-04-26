@@ -1,6 +1,6 @@
 # statusbot
 
-statusbot is a chat bot built on the [Probot][probot] framework. There's a wiki available [here][wiki].
+statusbot is a chat bot built on the [Probot][probot] framework. A wiki is available [here][wiki].
 
 This README will help you get started. It will be updated and improved
 to discuss user-specific instances, usage and deployment, the functionality 
@@ -13,44 +13,44 @@ available, and more!
 
 - Background management in GitHub:
   - Assign new PRs to the `Pipeline for QA` project board (`REVIEW` column).
-  - Move existing PRs to the correct `Pipeline for QA` project board column (`REVIEW`/`IN TEST`) depending on whether or not the required conditions are met (is mergeable, at least two reviewers have approved and there is no request for changes).
+  - Move existing PRs to the correct `Pipeline for QA` project board column (`REVIEW`/`IN TEST`), depending on whether or not the required conditions are met: is mergeable, at least two reviewers have approved it, and there is no request for changes.
   - Assign issues that are labeled `bounty-awaiting-approval` to the `Status SOB Swarm` project board (`bounty-awaiting-approval` column).
   - Welcome users who post their first PR in a project.
-  - Checks if all commits are GPG-signed and sets the PR status accordingly.
-  - Unfurls links on Issues and Pull Request discussions.
-  - Disallows merging of PRs containing WIP in the title.
+  - Check whether all commits are GPG signed, and set the PR status accordingly.
+  - Unfurl links on Issues and Pull Request discussions.
+  - Disallow merging of PRs containing WIP in the title.
   - Mention repo collaborators on Slack when a GHI is assigned the `bounty-awaiting-approval` label.
-  - When a PR is moved to the IN TEST column and the build has passed successfully, then the bot will kick a test automation build in Jenkins (retrying periodically if the PR build is still running).
-  - New functionality will be added in the future (wishlist is being tracked [here](https://docs.google.com/document/d/19NZEJ453av-owAEBXcIPjavbGKMBFlfVcwsuQ_ORzR4/))
+  - After a PR is moved to the IN TEST column and the build has passed successfully, the bot will kick a test automation build in Jenkins (retry periodically if the PR build is still running).
+  - New functionality will be added in the future, and the wishlist is being tracked [here](https://docs.google.com/document/d/19NZEJ453av-owAEBXcIPjavbGKMBFlfVcwsuQ_ORzR4/)).
 
-The project board names, column names, welcome message and other values are stored in the `.github/github-bot.yml` file. It can be overriden for each specific repository by adding a file in the same path on the respective repository (see [probot-config](https://github.com/getsentry/probot-config)).
+The project board's names, column names, welcome message, and other values are stored in the `.github/github-bot.yml` file. It can be overriden for each specific repository by adding a file in the same path on the respective repository (see [probot-config](https://github.com/getsentry/probot-config)).
 
 ## Development
 
-To get your environment set up go through the following steps:
+To get your environment set up, go through the following steps:
 
-1. Run `npm install`
-2. Populate `.env`
+1. Run `npm install`.
+2. Populate `.env`.
 
    ```sh
    cp .env.example .env
    # edit .env file to contain proper config
    ```
 
-After this you can start the bot by running:
+After this, you can start the bot by running the following:
 ```sh
 npm start
 ```
 
 ## Creating the Slack Bot Integration
 
-1. Go to https://my.slack.com/services/new/bot
-2. Add a bot integration
-3. Note the bot token starting with `xoxb-` and put it into `.env`
+1. Go to https://my.slack.com/services/new/bot.
+2. Add a bot integration.
+3. Note the bot token starting with `xoxb-`, and put it into `.env`.
 
 ## Creating the bot GitHub App
 
-This bot is meant to be packaged as a GitHub App. There are two steps to it: creating the app, and installing the app. Creating a GitHub App only needs to be done once and the app can be made public to be reused for any number of repositories and organizations.
+This bot is meant to be packaged as a GitHub App. There are two steps to it: creating the app, and installing the app. The app needs to be created only once and can be made public and reused for any number of repositories and organizations.
 
 See the official [docs for deployment](https://probot.github.io/docs/deployment/).
 
