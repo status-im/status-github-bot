@@ -2,7 +2,7 @@
 
 statusbot is a chat bot built on the [Probot][probot] framework. There's a wiki available [here][wiki].
 
-This README is intended to help get you started. It will be updated and improved
+This README will help you get started. It will be updated and improved
 to discuss user-specific instances, usage and deployment, the functionality 
 available, and more!
 
