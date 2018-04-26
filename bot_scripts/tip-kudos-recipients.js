@@ -177,6 +177,7 @@ async function processPendingPayments (robot, data, saveStateAsyncFunc) {
 
   if (!data.lastPayoutProcessingTimestamp) {
     data.lastPayoutProcessingTimestamp = (new Date()).getTime() / 1000
+    await saveStateAsyncFunc(data)
   }
 
   const now = (new Date()).getTime() / 1000
@@ -238,6 +239,7 @@ async function processPendingPayments (robot, data, saveStateAsyncFunc) {
   }
 
   data.lastPayoutProcessingTimestamp = (new Date()).getTime() / 1000
+  await saveStateAsyncFunc(data)
 
   robot.log.debug(`Total payments: ${totalPayments} ${tokenID}`)
 }
