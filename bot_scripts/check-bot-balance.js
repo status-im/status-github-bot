@@ -58,7 +58,13 @@ async function checkBotBalance (robot) {
           // Format balance to ether, check if is under threshold
           if (balance.lt(minBalance)) {
             // Send slack message
-            slackHelper.sendMessage(robot, options.slack.notification.room, `@here URGENT: ${account.name} account ETH will run out soon, current balance is ${ethers.utils.formatEther(balance)} ETH (threshold: ${ethers.utils.formatEther(minBalance)} ETH)`)
+            const slackChannelID = options.slack.notification.channel_id
+            const msg = `@here URGENT: ${account.name} account ETH will run out soon, current balance is ${ethers.utils.formatEther(balance)} ETH (threshold: ${ethers.utils.formatEther(minBalance)} ETH)`
+
+            robot.log.info(`${botName} - Opened Channel ${slackChannelID}`)
+            robot.log.info(`Notifying ${options.slack.notification.room} about bot balance`)
+
+            robot.slackWeb.chat.postMessage(slackChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
 
             account.lastWarningTimestamp = now
           }
