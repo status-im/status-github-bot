@@ -59,12 +59,11 @@ async function checkBotBalance (robot) {
           if (balance.lt(minBalance)) {
             // Send slack message
             const slackChannelID = options.slack.notification.channel_id
-            const msg = `@here URGENT: ${account.name} account ETH will run out soon, current balance is ${ethers.utils.formatEther(balance)} ETH (threshold: ${ethers.utils.formatEther(minBalance)} ETH)`
+            const msg = `<!here> URGENT: ${account.name} account ETH will run out soon, current balance is ${ethers.utils.formatEther(balance)} ETH (threshold: ${ethers.utils.formatEther(minBalance)} ETH)\nhttps://etherscan.io/address/${account.address}`
 
-            robot.log.info(`${botName} - Opened Channel ${slackChannelID}`)
-            robot.log.info(`Notifying ${options.slack.notification.room} about bot balance`)
+            robot.log.info(`Notifying Slack channel with ID ${slackChannelID} about bot balance`)
 
-            robot.slackWeb.chat.postMessage(slackChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
+            robot.slackWeb.chat.postMessage(slackChannelID, msg, {unfurl_links: false, as_user: slackHelper.BotUserName})
 
             account.lastWarningTimestamp = now
           }
