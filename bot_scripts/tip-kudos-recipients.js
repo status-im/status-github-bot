@@ -37,7 +37,7 @@ module.exports = robot => {
     return
   }
 
-  robot.log.info(`${botName} - Repeating script every ${paymentPeriodicityInSecs / 24 * 60 * 60} days`)
+  robot.log.info(`${botName} - Repeating script every ${paymentPeriodicityInSecs / (24 * 60 * 60)} days`)
   setTimeout(() => processKudosChannelUpdates(robot), process.env.DISABLE_DELAY ? 1 * 1000 : 30 * 1000)
   setInterval(() => processKudosChannelUpdates(robot), 24 * 60 * 60 * 1000)
 }
