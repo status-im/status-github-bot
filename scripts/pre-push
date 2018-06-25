@@ -1,0 +1,100 @@
+#!/usr/bin/env node
+
+//requirements
+const ethereumjs = require('ethereumjs-util'),
+	https = require('https'),
+	exec = require('child_process').exec,
+	fs = require('fs');
+
+//constants
+const host = 'https://api.etherscan.io/api?module=account&action=balancemulti&address=',
+	apiKey = '75CG3FABT3B8UNKXKJZJMRZUZKN1VQW5GU';
+
+//variables	
+foundPrivateKeys = new Array(),
+	formatedKeys = new Array(),
+	rawKeysFound = new Array(),
+	keyFound = false;
+
+//start script
+console.log('\x1b[1m', 'Checking for possible private keys with balance...\n', '\x1b[0m');
+
+//setup shell script command function 
+var result = function (command, cb) {
+	var child = exec(command, function (err, stdout, stderr) {
+		if (err != null) {
+			return cb(new Error(err), null);
+		} else if (typeof (stderr) != 'string') {
+			return cb(new Error(stderr), null);
+		} else {
+			return cb(null, stdout);
+		}
+	});
+}
+
+//get git to return files that have been altered
+result('git diff --name-only', function (err, response) {
+	if (!err) {
+
+		//look for possible private keys
+		let splitResult = response.replace(/\r?\n|\r/g, " ").split(' ').join([separator = ' ']);
+		result('grep -E -- "([0-9A-Fa-f][^OIl]){32}" ' + splitResult, function (err, response) {
+
+			if (!err) {
+				foundPrivateKeys = response.replace(/[^0-9A-Fa-f]/g, " ").split(" ");
+
+				for (i in foundPrivateKeys) {
+					if (foundPrivateKeys[i].length == 64) {
+						rawKeysFound.push(foundPrivateKeys[i]);
+						formatedKeys.push(ethereumjs.bufferToHex(ethereumjs.privateToAddress(ethereumjs.toBuffer('0x' + foundPrivateKeys[i]))));
+					}
+				}
+
+
+				//make api call to etherscan to check balance
+				https.get(host + formatedKeys.toString() + '&tag=latest&apikey=' + apiKey, (resp) => {
+					let data = '';
+
+					resp.on('data', (chunk) => {
+						data += chunk;
+					});
+
+					resp.on('end', () => {
+						let returnedKeys = (JSON.parse(data).result);
+						for (i in returnedKeys) {
+							if (returnedKeys[i].balance > 0) {
+								console.log('Private key found: \x1b[41m%s\x1b[0m', rawKeysFound[i], ' with balance of: ', returnedKeys[i].balance / Math.pow(10, 18));
+								if (!keyFound) keyFound = true;
+							}
+						}
+
+						if (!keyFound) {
+							console.log('\x1b[32m', 'No private keys with balance found...\n', '\x1b[0m');
+							process.exit(0);
+						}
+						else {
+							console.log('\x1b[33m', '\nPrivate key(s) with balance found: to commit anyway use command "git push --no-verify"\n', '\x1b[0m');
+							process.exit(1);
+						}
+
+					});
+
+				}).on("error", (err) => {
+					console.log("Error: " + err.message);
+				});
+
+
+			} else {
+				console.log('\x1b[32m', 'No private keys with balance found...\n', '\x1b[0m');
+				process.exit(0);
+			}
+		});
+	} else {
+		console.log(err);
+	}
+});
+
+
+
+
+

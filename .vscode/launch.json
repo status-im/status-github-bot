@@ -1,0 +1,41 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch via NPM",
+            "cwd": "${workspaceFolder}",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "start"
+            ],
+            "port": 9229
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/node_modules/probot/bin/probot-run.js",
+            "args": [
+                "${workspaceFolder}/index.js"
+            ],
+            "env": {
+                "DEBUG": "true",
+                "KUDOS_BOT_CONFIG": "{'options':{'inter_transaction_delay':20},'slack':{'channel_id':'C8P4F6WTB'},'rules':{'tip_per_kudo_in_usd':2,'tip_per_reaction_in_usd':0.2,'reaction_threshold':3},'payments':{'STT':{'network_id':'ropsten','private_key':'0xef04012ca9314315db69e27c8cfc8b99f529775a1503605223449f5b7f0e334b','contract_address':'0xc55cF4B03948D7EBc8b9E8BAD92643703811d162'},'SNT':{'network_id':'homestead','private_key':'0xecf69ec4a078f7010667c72ad40d0aad35bbdf9289dd484961281b5f89e2f866','contract_address':'0x744d70FDBE2Ba4CF95131626614a1763DF805B9E'}}}",
+                "MEMCACHE_URL": "",
+                "MEMCACHE_USERNAME": "",
+                "MEMCACHE_PASSWORD": ""
+            }
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach by Process ID",
+            "processId": "${command:PickProcess}"
+        }
+    ]
+}

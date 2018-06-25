@@ -1,0 +1,58 @@
+{
+  "name": "status-github-bot",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Pedro Pombeiro <pombeirp@users.noreply.github.com> (https://github.com/status-im/status-github-bot)",
+  "license": "ISC",
+  "repository": "https://github.com/status-im/status-github-bot.git",
+  "scripts": {
+    "start": "probot run ./index.js",
+    "test": "jest && standard",
+    "prepush": "node scripts/pre-push --loglevel warn"
+  },
+  "dependencies": {
+    "@slack/client": "^3.16.0",
+    "axios": "^0.18.0",
+    "eslint": "^4.19.1",
+    "ethers": "^3.0.8",
+    "hashmap": "^2.3.0",
+    "hashset": "0.0.6",
+    "jenkins": "^0.20.1",
+    "mem-cache": "0.0.5",
+    "memjs": "^1.2.0",
+    "probot": "^5.0.0",
+    "probot-config": "^0.1.0",
+    "probot-gpg-status": "^0.5.4",
+    "probot-scheduler": "^1.0.3",
+    "unfurl": "github:probot/unfurl",
+    "wip-bot": "github:gr2m/wip-bot"
+  },
+  "devDependencies": {
+    "eslint-config-standard": "^11.0.0-beta.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-node": "^5.2.1",
+    "eslint-plugin-promise": "^3.6.0",
+    "eslint-plugin-standard": "^3.0.1",
+    "husky": "^0.14.3",
+    "jest": "^22.2.1",
+    "smee-client": "^1.0.1",
+    "standard": "^10.0.3",
+    "ethereumjs-util": "^5.2.0"
+  },
+  "engines": {
+    "node": ">= 7.7.0",
+    "npm": ">= 4.0.0"
+  },
+  "standard": {
+    "env": [
+      "jest"
+    ]
+  },
+  "probot": {
+    "plugins": [
+      "probot-gpg-status",
+      "unfurl",
+      "wip-bot"
+    ]
+  }
+}
