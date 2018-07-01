@@ -25,13 +25,14 @@ var result = function (command, cb) {
   })
 }
 // get git to return files that have been altered
-result('git diff --name-only', function (err, response) {
+result('git diff master origin/master --name-only', function (err, response) {
   if (!err && response !== '') {
     // look for possible private keys
     let splitResult = response.replace(/\r?\n|\r/g, ' ').split(' ').join(' ')
     result('grep -E -- "([0-9A-Fa-f][^OIl]){32}" ' + splitResult, function (err, response) {
       if (!err) {
         foundPrivateKeys = response.replace(/[^0-9A-Fa-f]/g, ' ').split(' ')
+
         for (var i in foundPrivateKeys) {
           if (foundPrivateKeys[i].length === 64) {
             rawKeysFound.push(foundPrivateKeys[i])
@@ -52,6 +53,7 @@ result('git diff --name-only', function (err, response) {
                 if (!keyFound) keyFound = true
               }
             }
+
             if (!keyFound) {
               console.log('\x1b[32m', 'No private keys with balance found...\n', '\x1b[0m')
               process.exit(0)
