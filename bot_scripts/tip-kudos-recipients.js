@@ -32,6 +32,10 @@ var isCheckingUpdates = false
 var previousNonce = null
 
 module.exports = robot => {
+  if (!options || !token) {
+    robot.log.debug(`${botName} - No options configured. Disabling script`)
+    return
+  }
   if (!privateKey.startsWith('0x')) {
     robot.log.error(`${botName} - Private key must start with 0x. Disabling script`)
     return
@@ -112,7 +116,7 @@ async function fetchPendingKudos (robot, data) {
           // and leave it for a later time, so that people have time to vote
           continue
         }
-        if (message.type !== 'message' || message.subtype || !message.bot_id) {
+        if (message.type !== 'message' || message.subtype || !message.bot_id || !message.attachments) {
           continue
         }
 

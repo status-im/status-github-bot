@@ -21,7 +21,7 @@ var isCheckingBalance = false
 
 module.exports = robot => {
   if (!options || !options.accounts || options.accounts.length === 0) {
-    robot.log.debug(`${botName} - No accounts counfigured. Disabling script`)
+    robot.log.debug(`${botName} - No accounts configured. Disabling script`)
     return
   }
 
