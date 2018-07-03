@@ -24,7 +24,7 @@
     "probot-gpg-status": "^0.5.4",
     "probot-scheduler": "^1.0.3",
     "unfurl": "github:probot/unfurl",
-    "wip-bot": "github:gr2m/wip-bot"
+    "wip": "github:gr2m/wip-bot"
   },
   "devDependencies": {
     "eslint-config-standard": "^11.0.0-beta.0",
@@ -49,7 +49,7 @@
     "plugins": [
       "probot-gpg-status",
       "unfurl",
-      "wip-bot"
+      "wip"
     ]
   }
 }
