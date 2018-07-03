@@ -20,7 +20,7 @@ const minWarningAgeInMillisecs = 24 * 60 * 60 * 1000
 var isCheckingBalance = false
 
 module.exports = robot => {
-  if (!options || options.accounts.length === 0) {
+  if (!options || !options.accounts || options.accounts.length === 0) {
     robot.log.debug(`${botName} - No accounts counfigured. Disabling script`)
     return
   }
