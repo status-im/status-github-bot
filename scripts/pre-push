@@ -10,6 +10,7 @@ var foundPrivateKeys = []
 var formatedKeys = []
 var rawKeysFound = []
 var keyFound = false
+var originName = process.env.GIT_PARAMS.replace(/ .*/, '')
 // start script
 console.log('\x1b[1m', 'Checking for possible private keys with balance...\n', '\x1b[0m')
 // setup shell script command function
@@ -25,7 +26,7 @@ var result = function (command, cb) {
   })
 }
 // get git to return files that have been altered
-result('git diff master origin/master --name-only', function (err, response) {
+result('git diff ' + originName + ' --name-only', function (err, response) {
   if (!err && response !== '') {
     // look for possible private keys
     let splitResult = response.replace(/\r?\n|\r/g, ' ').split(' ').join(' ')
