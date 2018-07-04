@@ -7,8 +7,7 @@
   "repository": "https://github.com/status-im/status-github-bot.git",
   "scripts": {
     "start": "probot run ./index.js",
-    "test": "jest && standard",
-    "prepush": "git fetch --no-tags && node scripts/pre-push --loglevel warn ${GIT_PARAMS}"
+    "test": "jest && standard"
   },
   "dependencies": {
     "@slack/client": "^3.16.0",
@@ -34,7 +33,7 @@
     "eslint-plugin-promise": "^3.6.0",
     "eslint-plugin-standard": "^3.0.1",
     "ethereumjs-util": "^5.2.0",
-    "husky": "^0.14.3",
+    "husky": "^1.0.0-rc.10",
     "jest": "^22.2.1",
     "smee-client": "^1.0.1",
     "standard": "^10.0.3"
@@ -54,5 +53,10 @@
       "unfurl",
       "wip-bot"
     ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-push": "git fetch --no-tags && node scripts/pre-push --loglevel warn ${HUSKY_GIT_STDIN}"
+    }
   }
 }
