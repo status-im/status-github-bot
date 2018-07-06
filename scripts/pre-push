@@ -11,6 +11,7 @@ var formatedKeys = []
 var rawKeysFound = []
 var keyFound = false
 var originSHA = process.env.HUSKY_GIT_STDIN.split(/\s+/)[3]
+var masterSHA = process.env.HUSKY_GIT_STDIN.split(/\s+/)[1]
 // start script
 console.log('\x1b[1m', 'Checking for possible private keys with balance...\n', '\x1b[0m')
 // setup shell script command function
@@ -26,7 +27,7 @@ var result = function (command, cb) {
   })
 }
 // get git to return files that have been altered
-result('git diff ' + originSHA + ' --name-only', function (err, response) {
+result('git diff ' + masterSHA + ' ' + originSHA + ' --name-only', function (err, response) {
   if (!err && response !== '') {
     // look for possible private keys
     let splitResult = response.replace(/\r?\n|\r/g, ' ').split(' ').join(' ')
