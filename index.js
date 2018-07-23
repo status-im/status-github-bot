@@ -38,7 +38,8 @@ module.exports = async (robot) => {
   require('./bot_scripts/notify-reviewers-via-slack')(robot)
   require('./bot_scripts/tip-kudos-recipients')(robot)
   require('./bot_scripts/check-bot-balance')(robot)
-
+  require('./bot_scripts/manage-pr-checklist')(robot)
+  
   // For more information on building apps:
   // https://probot.github.io/docs/
 
