@@ -13,7 +13,7 @@
     "@slack/client": "^3.16.0",
     "axios": "^0.18.0",
     "eslint": "^4.19.1",
-    "ethers": "^3.0.8",
+    "ethers": "^3.0.26",
     "hashmap": "^2.3.0",
     "hashset": "0.0.6",
     "jenkins": "^0.20.1",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "eslint-config-standard": "^11.0.0-beta.0",
-    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-node": "^5.2.1",
     "eslint-plugin-promise": "^3.6.0",
     "eslint-plugin-standard": "^3.0.1",
