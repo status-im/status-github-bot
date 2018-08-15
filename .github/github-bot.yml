@@ -2,8 +2,3 @@ _extends: probot-settings
 
 github-team:
   slug: 'go'
-
-prchecklist:
-  title: 'PR Guildelines checklist'
-  checklist:
-    - "All contribution guidelines were followed"
