@@ -293,10 +293,10 @@ function parseKudosReceivers (message) {
 function countStarReactions (message, kudosReceivers) {
   let reactionCount = 0
   if (message.reactions) {
-    const starsRegex = /&gt; \*(\d+) :star:s\s+\*/g
+    const starsRegex = /&gt; \*(\d+) :star:s?\s*\*/g
     reactionCount = getReactionCount(starsRegex, message.text)
     if (reactionCount === 0) {
-      const reactionsRegex = /&gt; \*`(\d+)` Reactions?\s+\*/g
+      const reactionsRegex = /&gt; \*`(\d+)` Reactions?\s*\*/g
       reactionCount = getReactionCount(reactionsRegex, message.text)
     }
   }
