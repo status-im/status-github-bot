@@ -90,7 +90,7 @@ async function createOrEditChecklist (context, checkList, header) {
   const repo = context.payload.repository.name
   const number = context.payload.pull_request.number
   if (checkList && checkList.length > 0) {
-    let body = '<!--prchecklist--> \n' + header + '\n'
+    let body = '<!--prchecklist--> \n### ' + header + '\n'
     for (const key of checkList) {
       body += '- [ ] ' + key + '\n'
     }
