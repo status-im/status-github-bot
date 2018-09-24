@@ -63,10 +63,16 @@ async function handlePullRequest (context, robot) {
   }
 
   try {
+    const {found, comment} = await getCheckListComment(context) 
+    const targetUrl = 'https://github.com/status-im/status-github-bot.git'
+    if (found) {
+      targetUrl = comment.url 
+    }
+
     await context.github.repos.createStatus(context.repo({
       sha: context.payload.pull_request.head.sha,
       state: newStatus,
-      target_url: 'https://github.com/status-im/status-github-bot.git',
+      target_url: targetUrl,
       description: isChecklistComplete ? 'ready for merge' : 'PR Checklist is incomplete',
       context: 'PRChecklist'
     }))
@@ -101,7 +107,7 @@ async function createOrEditChecklist (context, checkList, header) {
 async function verifyChecklist (context, settings) {
   let isChecklistComplete = true
   let firstCheck = false
-  const {found, body} = await getCheckList(context)
+  const {found, body} = await getCheckListBody(context)
   if (found) {
     if (body) {
       for (const str of body) {
@@ -122,22 +128,33 @@ async function verifyChecklist (context, settings) {
   return {isChecklistComplete, firstCheck}
 }
 
-async function getCheckList (context) {
+async function getCheckListComment (context) {
   try {
     const owner = context.payload.repository.owner.login
     const repo = context.payload.repository.name
     const number = context.payload.pull_request.number
     const comments = await context.github.paginate(context.github.issues.getComments({ owner, repo, number }), res => res.data)
     for (const comment of comments) {
-      const {found, body} = checkPRChecklist(comment.body)
+      const {found} = checkPRChecklist(comment.body)
       if (found) {
-        return {found, body}
+        return {found, comment}
       }
     }
     return false
   } catch (e) {
     return true
   }
+}
+
+async function getCheckListBody (context) {
+  const {found, comment} = await getCheckListComment(context) 
+  if (found) {
+    const {body} = checkPRChecklist(comment.body)
+
+    return {found, body}
+  }
+
+  return false
 }
 
 function checkPRChecklist (str) {
