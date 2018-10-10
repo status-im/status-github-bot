@@ -11,7 +11,7 @@
 
 const getConfig = require('probot-config')
 
-const slackHelper = require('../lib/slack')
+// const slackHelper = require('../lib/slack')
 const defaultConfig = require('../lib/config')
 
 const botName = 'greet-new-contributor'
@@ -75,14 +75,14 @@ async function greetNewContributor (context, robot) {
         }
 
         // Send message to Slack
-        slackHelper.sendMessage(robot, config.slack.notification.room, `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoInfo.repo} repo\n${payload.pull_request.html_url}`)
+        // slackHelper.sendMessage(robot, config.slack.notification.room, `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoInfo.repo} repo\n${payload.pull_request.html_url}`)
 
-        const slackRecipients = welcomeBotConfig['slack-recipients']
-        if (slackRecipients) {
-          for (const slackUsername of slackRecipients) {
-            await notifySlackRecipient(robot, slackUsername, payload, repoInfo)
-          }
-        }
+        // const slackRecipients = welcomeBotConfig['slack-recipients']
+        // if (slackRecipients) {
+        //   for (const slackUsername of slackRecipients) {
+        //     await notifySlackRecipient(robot, slackUsername, payload, repoInfo)
+        //   }
+        // }
       } catch (err) {
         if (err.code !== 404) {
           robot.log.error(`${botName} - Couldn't create comment on PR: ${err}`, repoInfo)
@@ -96,20 +96,20 @@ async function greetNewContributor (context, robot) {
   }
 }
 
-async function notifySlackRecipient (robot, slackUsername, payload, repoInfo) {
-  try {
-    const slackProfileCache = robot['slackProfileCache']
-    const userID = await slackProfileCache.getSlackIdFromSlackUsername(slackUsername)
-    const resp = await robot.slackWeb.im.open(userID)
+// async function notifySlackRecipient (robot, slackUsername, payload, repoInfo) {
+//   try {
+//     const slackProfileCache = robot['slackProfileCache']
+//     const userID = await slackProfileCache.getSlackIdFromSlackUsername(slackUsername)
+//     const resp = await robot.slackWeb.im.open(userID)
 
-    const dmChannelID = resp.channel.id
-    const msg = `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoInfo.repo} repo\n${payload.pull_request.html_url}`
+//     const dmChannelID = resp.channel.id
+//     const msg = `Greeted ${payload.pull_request.user.login} on his first PR in the ${repoInfo.repo} repo\n${payload.pull_request.html_url}`
 
-    robot.log.info(`${botName} - Opened DM Channel ${dmChannelID}`)
-    robot.log.info(`Notifying ${slackUsername} about user's first PM in ${payload.pull_request.url}`)
+//     robot.log.info(`${botName} - Opened DM Channel ${dmChannelID}`)
+//     robot.log.info(`Notifying ${slackUsername} about user's first PM in ${payload.pull_request.url}`)
 
-    robot.slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
-  } catch (error) {
-    robot.log.warn(`Could not open DM channel to ${slackUsername} for new user's first PM notification`, error)
-  }
-}
+//     robot.slackWeb.chat.postMessage(dmChannelID, msg, {unfurl_links: true, as_user: slackHelper.BotUserName})
+//   } catch (error) {
+//     robot.log.warn(`Could not open DM channel to ${slackUsername} for new user's first PM notification`, error)
+//   }
+// }

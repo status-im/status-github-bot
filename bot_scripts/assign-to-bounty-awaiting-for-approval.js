@@ -10,7 +10,7 @@
 // Author:
 //   PombeirP
 
-const slackHelper = require('../lib/slack')
+// const slackHelper = require('../lib/slack')
 const gitHubHelpers = require('../lib/github-helpers')
 const defaultConfig = require('../lib/config')
 
@@ -104,19 +104,19 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     }
   }
 
-  const slackMessage = getSlackMessage(projectBoardConfig.name, approvalColumnName, payload, assign, isOfficialBounty, bountySize)
-  if (slackMessage && !process.env.DRY_RUN_BOUNTY_APPROVAL) {
-    // Send message to Slack
-    slackHelper.sendMessage(robot, config.slack.notification.room, slackMessage)
+  // const slackMessage = getSlackMessage(projectBoardConfig.name, approvalColumnName, payload, assign, isOfficialBounty, bountySize)
+  // if (slackMessage && !process.env.DRY_RUN_BOUNTY_APPROVAL) {
+  //   // Send message to Slack
+  //   slackHelper.sendMessage(robot, config.slack.notification.room, slackMessage)
 
-    // Cross-post approved bounties to a predefined room
-    if (!assign && isOfficialBounty) {
-      const slackRoom = projectBoardConfig['post-approved-bounties-to-slack-room']
-      if (slackRoom) {
-        slackHelper.sendMessage(robot, slackRoom, slackMessage)
-      }
-    }
-  }
+  //   // Cross-post approved bounties to a predefined room
+  //   if (!assign && isOfficialBounty) {
+  //     const slackRoom = projectBoardConfig['post-approved-bounties-to-slack-room']
+  //     if (slackRoom) {
+  //       slackHelper.sendMessage(robot, slackRoom, slackMessage)
+  //     }
+  //   }
+  // }
 }
 
 function getSlackMessage (projectBoardName, approvalColumnName, payload, assign, isOfficialBounty, bountySize) {

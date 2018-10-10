@@ -15,7 +15,7 @@ const getConfig = require('probot-config')
 
 const defaultConfig = require('../lib/config')
 const gitHubHelpers = require('../lib/github-helpers')
-const slackHelper = require('../lib/slack')
+// const slackHelper = require('../lib/slack')
 
 const botName = 'assign-approved-pr-to-test'
 
@@ -140,10 +140,10 @@ async function assignPullRequestToCorrectColumn (github, robot, repo, pullReques
         robot.log.info(`${botName} - Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prInfo.number}`)
       }
 
-      slackHelper.sendMessage(robot, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
+      // slackHelper.sendMessage(robot, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
     } catch (err) {
       robot.log.error(`${botName} - Couldn't move project card for the PR: ${err}`, srcColumn.id, dstColumn.id, pullRequest.id)
-      slackHelper.sendMessage(robot, room, `I couldn't move the PR to ${dstColumn.name} column :confused:\n${pullRequest.html_url}`)
+      // slackHelper.sendMessage(robot, room, `I couldn't move the PR to ${dstColumn.name} column :confused:\n${pullRequest.html_url}`)
     }
   } else {
     try {

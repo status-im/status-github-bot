@@ -10,7 +10,7 @@
 //   PombeirP
 
 const defaultConfig = require('../lib/config')
-const slackHelper = require('../lib/slack')
+// const slackHelper = require('../lib/slack')
 const gitHubHelpers = require('../lib/github-helpers')
 
 const getConfig = require('probot-config')
@@ -65,7 +65,7 @@ async function assignPullRequestToReview (context, robot) {
     }
 
     // Send message to Slack
-    slackHelper.sendMessage(robot, config.slack.notification.room, `Assigned PR to ${reviewColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`)
+    // slackHelper.sendMessage(robot, config.slack.notification.room, `Assigned PR to ${reviewColumnName} in ${projectBoardName} project\n${payload.pull_request.html_url}`)
   } catch (err) {
     robot.log.error(`${botName} - Couldn't create project card for the PR: ${err}`, column.id, payload.pull_request.id)
   }

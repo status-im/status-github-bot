@@ -9,7 +9,7 @@
 // Author:
 //   PombeirP
 
-const slackHelper = require('../lib/slack')
+// const slackHelper = require('../lib/slack')
 const gitHubHelpers = require('../lib/github-helpers')
 const defaultConfig = require('../lib/config')
 
@@ -94,17 +94,17 @@ async function assignIssueToBountyBug (context, robot, assign) {
     }
   }
 
-  const slackMessage = getSlackMessage(projectBoardConfig.name, bountyBugColumnName, payload, assign)
-  if (slackMessage) {
-    // Send message to Slack
-    slackHelper.sendMessage(robot, config.slack.notification.room, slackMessage)
-  }
+  // const slackMessage = getSlackMessage(projectBoardConfig.name, bountyBugColumnName, payload, assign)
+  // if (slackMessage) {
+  //   // Send message to Slack
+  //   slackHelper.sendMessage(robot, config.slack.notification.room, slackMessage)
+  // }
 }
 
-function getSlackMessage (projectBoardName, bountyBugColumnName, payload, assign) {
-  if (assign) {
-    return `Assigned issue to ${bountyBugColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
-  }
+// function getSlackMessage (projectBoardName, bountyBugColumnName, payload, assign) {
+//   if (assign) {
+//     return `Assigned issue to ${bountyBugColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
+//   }
 
-  return `Unassigned issue from ${bountyBugColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
-}
+//   return `Unassigned issue from ${bountyBugColumnName} in ${projectBoardName} project\n${payload.issue.html_url}`
+// }
