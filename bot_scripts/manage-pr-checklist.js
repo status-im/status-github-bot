@@ -51,7 +51,7 @@ async function handlePullRequest (context, robot) {
   if (settings.title == null) settings.title = ''
   if (settings.checklist == null) settings.checklist = {}
   const currentStatus = await getCurrentStatus(context)
-  const {isChecklistComplete, firstCheck} = await verifyChecklist(context, settings)
+  const { isChecklistComplete, firstCheck } = await verifyChecklist(context, settings)
   const newStatus = isChecklistComplete ? 'success' : 'pending'
   const hasChange = firstCheck || currentStatus !== newStatus
   const logStatus = isChecklistComplete ? '✅' : '⏳'
@@ -63,10 +63,10 @@ async function handlePullRequest (context, robot) {
   }
 
   try {
-    const {found, comment} = await getCheckListComment(context) 
-    const targetUrl = 'https://github.com/status-im/status-github-bot.git'
+    const { found, comment } = await getCheckListComment(context)
+    let targetUrl = 'https://github.com/status-im/status-github-bot.git'
     if (found) {
-      targetUrl = comment.url 
+      targetUrl = comment.url
     }
 
     await context.github.repos.createStatus(context.repo({
@@ -84,7 +84,7 @@ async function handlePullRequest (context, robot) {
 }
 
 async function getCurrentStatus (context) {
-  const {data: {statuses}} = await context.github.repos.getCombinedStatusForRef(context.repo({
+  const { data: { statuses } } = await context.github.repos.getCombinedStatusForRef(context.repo({
     ref: context.payload.pull_request.head.sha
   }))
 
@@ -107,7 +107,7 @@ async function createOrEditChecklist (context, checkList, header) {
 async function verifyChecklist (context, settings) {
   let isChecklistComplete = true
   let firstCheck = false
-  const {found, body} = await getCheckListBody(context)
+  const { found, body } = await getCheckListBody(context)
   if (found) {
     if (body) {
       for (const str of body) {
@@ -125,7 +125,7 @@ async function verifyChecklist (context, settings) {
     isChecklistComplete = false
     firstCheck = true
   }
-  return {isChecklistComplete, firstCheck}
+  return { isChecklistComplete, firstCheck }
 }
 
 async function getCheckListComment (context) {
@@ -135,9 +135,9 @@ async function getCheckListComment (context) {
     const number = context.payload.pull_request.number
     const comments = await context.github.paginate(context.github.issues.getComments({ owner, repo, number }), res => res.data)
     for (const comment of comments) {
-      const {found} = checkPRChecklist(comment.body)
+      const { found } = checkPRChecklist(comment.body)
       if (found) {
-        return {found, comment}
+        return { found, comment }
       }
     }
     return false
@@ -147,11 +147,11 @@ async function getCheckListComment (context) {
 }
 
 async function getCheckListBody (context) {
-  const {found, comment} = await getCheckListComment(context) 
+  const { found, comment } = await getCheckListComment(context)
   if (found) {
-    const {body} = checkPRChecklist(comment.body)
+    const { body } = checkPRChecklist(comment.body)
 
-    return {found, body}
+    return { found, body }
   }
 
   return false
@@ -161,11 +161,11 @@ function checkPRChecklist (str) {
   let found = false
   let body = null
   const isBotComment = str.match(/(<!--prchecklist-->)/g)
-  if (isBotComment == null) return {found, body}
-  let res = str.match(/(-\s\[(\s|x)])(.*)/gm)
+  if (isBotComment == null) return { found, body }
+  const res = str.match(/(-\s\[(\s|x)])(.*)/gm)
   if (res && res.length > 0) {
     found = true
     body = res
   }
-  return {found, body}
+  return { found, body }
 }
