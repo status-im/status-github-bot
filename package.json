@@ -50,9 +50,7 @@
   },
   "probot": {
     "plugins": [
-      "probot-gpg-status",
-      "unfurl",
-      "wip"
+      "unfurl"
     ]
   },
   "husky": {
