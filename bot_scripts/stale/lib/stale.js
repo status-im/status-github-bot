@@ -68,7 +68,13 @@ module.exports = class Stale {
     queryParts.push(exemptMilestones ? 'no:milestone' : '')
 
     const query = queryParts.join(' ')
-    const days = this.getConfigValue(type, 'days') || this.getConfigValue(type, 'daysUntilStale')
+    let days = this.getConfigValue(type, 'days')
+    if (!days && type === 'pulls') {
+      days = this.getConfigValue(type, 'daysUntilPullRequestStale')
+    }
+    if (!days) {
+      days = this.getConfigValue(type, 'daysUntilStale')
+    }
     return this.search(type, days, query)
   }
 
