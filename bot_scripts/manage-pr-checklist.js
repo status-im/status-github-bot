@@ -13,6 +13,7 @@
 const fetch = require('node-fetch')
 const getConfig = require('probot-config')
 const defaultConfig = require('../lib/config')
+const gitHubHelpers = require('../lib/github-helpers')
 const botName = 'manage-pr-checklist'
 
 module.exports = (robot) => {
@@ -50,7 +51,7 @@ async function handlePullRequest (context, robot) {
   }
   if (settings.title == null) settings.title = ''
   if (settings.checklist == null) settings.checklist = {}
-  const currentStatus = await getCurrentStatus(context)
+  const currentStatus = await gitHubHelpers.getPullRequestCurrentStatusForContext(context, 'PRChecklist')
   const { isChecklistComplete, firstCheck } = await verifyChecklist(context, settings)
   const newStatus = isChecklistComplete ? 'success' : 'pending'
   const hasChange = firstCheck || currentStatus !== newStatus
@@ -81,14 +82,6 @@ async function handlePullRequest (context, robot) {
   } catch (err) {
     robot.log.error(`${botName} - Couldn't create status for commits in the PR: ${err}`, context.payload.pull_request.id)
   }
-}
-
-async function getCurrentStatus (context) {
-  const { data: { statuses } } = await context.github.repos.getCombinedStatusForRef(context.repo({
-    ref: context.payload.pull_request.head.sha
-  }))
-
-  return (statuses.find(status => status.context === 'PRChecklist') || {}).state
 }
 
 async function createOrEditChecklist (context, checkList, header) {

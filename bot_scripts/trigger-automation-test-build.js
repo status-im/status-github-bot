@@ -98,31 +98,41 @@ async function processChangedProjectCard (robot, context) {
   const prNumber = last(payload.project_card.content_url.split('/'), -1)
   const fullJobName = automatedTestsConfig['job-full-name']
 
-  await processPullRequest(github, robot, { ...repoInfo, number: prNumber }, fullJobName)
+  await processPullRequest(context, robot, { ...repoInfo, number: prNumber }, fullJobName)
 }
 
-async function processPullRequest (github, robot, prInfo, fullJobName) {
+async function processPullRequest (context, robot, prInfo, fullJobName) {
+  const { github } = context
+
   // Remove the PR from the pending PR list, if it is there
   pendingPullRequests.delete(prInfo.number)
 
   try {
-    const state = await gitHubHelpers.getReviewApprovalState(github, robot, prInfo, null)
+    // Get detailed pull request
+    const pullRequestPayload = await github.pullRequests.get(prInfo)
+    const pullRequest = pullRequestPayload.data
+    if (!pullRequest) {
+      robot.log.warn(`${botName} - Could not find PR`, prInfo)
+      return
+    }
 
-    switch (state) {
-      case 'unstable':
-      case 'awaiting_reviewers':
-      case 'changes_requested':
+    const statusContext = 'jenkins/prs/android-e2e'
+    const currentStatus = await gitHubHelpers.getPullRequestCurrentStatusForContext(context, statusContext, pullRequest)
+
+    switch (currentStatus) {
+      case 'pending':
         pendingPullRequests.set(prInfo.number, { github: github, prInfo, fullJobName: fullJobName })
-        robot.log.debug(`${botName} - State is '${state}', adding to backlog to check periodically`, prInfo)
+        robot.log.debug(`${botName} - Status for ${statusContext} is '${currentStatus}', adding to backlog to check periodically`, prInfo)
         return
-      case 'failed':
-        robot.log.debug(`${botName} - State is '${state}', exiting`, prInfo)
+      case 'error':
+      case 'failure':
+        robot.log.debug(`${botName} - Status for ${statusContext} is '${currentStatus}', exiting`, prInfo)
         return
-      case 'approved':
-        robot.log.debug(`${botName} - State is '${state}', proceeding`, prInfo)
+      case 'success':
+        robot.log.debug(`${botName} - Status for ${statusContext} is '${currentStatus}', proceeding`, prInfo)
         break
       default:
-        robot.log.warn(`${botName} - State is '${state}', ignoring`, prInfo)
+        robot.log.warn(`${botName} - Status for ${statusContext} is '${currentStatus}', ignoring`, prInfo)
         return
     }
   } catch (err) {
