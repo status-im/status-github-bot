@@ -21,10 +21,7 @@
     "memjs": "^1.2.0",
     "probot": "^5.0.1",
     "probot-config": "^0.1.0",
-    "probot-gpg-status": "^0.5.4",
-    "probot-scheduler": "^1.2.0",
-    "unfurl": "github:probot/unfurl",
-    "wip": "github:gr2m/wip-bot"
+    "probot-scheduler": "^1.2.0"
   },
   "devDependencies": {
     "eslint-config-standard": "^11.0.0",
@@ -48,11 +45,7 @@
     ]
   },
   "probot": {
-    "plugins": [
-      "probot-gpg-status",
-      "unfurl",
-      "wip"
-    ]
+    "plugins": []
   },
   "husky": {
     "hooks": {
