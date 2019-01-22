@@ -27,7 +27,7 @@ module.exports = robot => {
 async function checkOpenPullRequests (robot, context) {
   const { github, payload } = context
   const repo = payload.repository
-  const repoInfo = { owner: payload.repository.owner.login, repo: payload.repository.name }
+  const repoInfo = context.repo()
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const projectBoardConfig = config ? config['project-board'] : null
 
@@ -68,14 +68,14 @@ async function checkOpenPullRequests (robot, context) {
     try {
       // Gather all open PRs in this repo
       const allPullRequests = await github.paginate(
-        github.pullRequests.getAll({ ...repoInfo, per_page: 100 }),
+        github.pullRequests.getAll(context.repo({ per_page: 100 })),
         res => res.data
       )
 
       // And make sure they are assigned to the correct project column
       for (const pullRequest of allPullRequests) {
         try {
-          await assignPullRequestToCorrectColumn(github, robot, repo, pullRequest, testedPullRequestLabelName, columns, config.slack.notification.room)
+          await assignPullRequestToCorrectColumn(context, robot, repo, pullRequest, testedPullRequestLabelName, columns, config.slack.notification.room)
         } catch (err) {
           robot.log.error(`${botName} - Unhandled exception while processing PR: ${err}`, repoInfo)
         }
@@ -88,7 +88,8 @@ async function checkOpenPullRequests (robot, context) {
   }
 }
 
-async function assignPullRequestToCorrectColumn (github, robot, repo, pullRequest, testedPullRequestLabelName, columns, room) {
+async function assignPullRequestToCorrectColumn (context, robot, repo, pullRequest, testedPullRequestLabelName, columns, room) {
+  const { github } = context
   const prInfo = { owner: repo.owner.login, repo: repo.name, number: pullRequest.number }
 
   let state = null

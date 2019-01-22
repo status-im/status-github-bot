@@ -33,7 +33,7 @@ function registerForNewBounties (robot) {
 
 async function notifyCollaborators (context, robot) {
   const { github, payload } = context
-  const repoInfo = { owner: payload.repository.owner.login, repo: payload.repository.name }
+  const repoInfo = context.repo()
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const bountyProjectBoardConfig = config ? config['bounty-project-board'] : null
   const gitHubTeamConfig = config ? config['github-team'] : null

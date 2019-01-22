@@ -42,7 +42,7 @@ async function processChangedProjectCard (robot, context) {
     return
   }
 
-  const repoInfo = { owner: repo.owner.login, repo: repo.name }
+  const repoInfo = context.repo()
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const projectBoardConfig = config ? config['project-board'] : null
   const automatedTestsConfig = config ? config['automated-tests'] : null

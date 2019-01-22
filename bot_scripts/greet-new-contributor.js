@@ -43,8 +43,8 @@ function executeTemplate (templateString, templateVars) {
 async function greetNewContributor (context, robot) {
   const { github, payload } = context
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
-  const repoInfo = { owner: payload.repository.owner.login, repo: payload.repository.name }
-  const prInfo = { ...repoInfo, number: payload.pull_request.number }
+  const repoInfo = context.repo()
+  const prInfo = context.issue()
 
   const welcomeBotConfig = config ? config['welcome-bot'] : null
   if (!welcomeBotConfig) {
@@ -68,10 +68,7 @@ async function greetNewContributor (context, robot) {
         if (process.env.DRY_RUN) {
           robot.log(`${botName} - Would have created comment in GHI`, prInfo, welcomeMessage)
         } else {
-          await github.issues.createComment({
-            ...prInfo,
-            body: welcomeMessage
-          })
+          await github.issues.createComment(context.issue({ body: welcomeMessage }))
         }
 
         // Send message to Slack
