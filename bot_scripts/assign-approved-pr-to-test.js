@@ -67,7 +67,7 @@ async function checkOpenPullRequests (robot, context) {
   // Fetch column IDs
   let ghcolumns
   try {
-    const ghcolumnsPayload = await github.projects.getProjectColumns({ project_id: project.id })
+    const ghcolumnsPayload = await github.projects.listColumns({ project_id: project.id })
     ghcolumns = ghcolumnsPayload.data
   } catch (err) {
     robot.log.error(`${botName} - Couldn't fetch the github columns for project: ${err}`, repoInfo, project.id)
@@ -85,7 +85,7 @@ async function checkOpenPullRequests (robot, context) {
     try {
       // Gather all open PRs in this repo
       const allPullRequests = await github.paginate(
-        github.pullRequests.getAll(context.repo({ per_page: 100 })),
+        github.pullRequests.list(context.repo({ per_page: 100 })),
         res => res.data
       )
 
