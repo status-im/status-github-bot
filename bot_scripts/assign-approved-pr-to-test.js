@@ -22,11 +22,28 @@ const botName = 'assign-approved-pr-to-test'
 module.exports = robot => {
   createScheduler(robot, { interval: 10 * 60 * 1000, delay: !process.env.DISABLE_DELAY })
   robot.on('schedule.repository', context => checkOpenPullRequests(robot, context))
+  robot.on('pull_request.opened', context => handleOpenedPullRequest(robot, context))
+}
+
+// This method creates a sentinel status in new PRs so that they can't be merged before an e2e test run has successfully completed
+async function handleOpenedPullRequest (robot, context) {
+  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  const projectBoardConfig = config ? config['project-board'] : null
+  const automatedTestsConfig = config ? config['automated-tests'] : null
+  if (!projectBoardConfig || !automatedTestsConfig) {
+    return
+  }
+
+  await context.github.repos.createStatus(context.repo({
+    context: 'Mobile e2e tests',
+    description: 'Tests will run once the PR is moved to the TO TEST column',
+    sha: context.payload.pull_request.head.sha,
+    state: 'error'
+  }))
 }
 
 async function checkOpenPullRequests (robot, context) {
-  const { github, payload } = context
-  const repo = payload.repository
+  const { github, payload: { repository: repo } } = context
   const repoInfo = context.repo()
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const projectBoardConfig = config ? config['project-board'] : null
@@ -94,7 +111,12 @@ async function assignPullRequestToCorrectColumn (context, robot, repo, pullReque
 
   let state = null
   try {
-    state = await gitHubHelpers.getReviewApprovalState(github, robot, prInfo, testedPullRequestLabelName)
+    // Ignore statuses created by us
+    const filterFn = (status) => !(status.context === 'Mobile e2e tests' &&
+                                   status.creator &&
+                                   (status.creator.login === 'status-github-bot[bot]' || status.creator.login === 'e2e-tests-check-bot[bot]'))
+
+    state = await gitHubHelpers.getReviewApprovalState(context, robot, prInfo, testedPullRequestLabelName, filterFn)
   } catch (err) {
     robot.log.error(`${botName} - Couldn't calculate the PR approval state: ${err}`, prInfo)
   }

@@ -38,6 +38,7 @@ To get your environment set up, go through the following steps:
    ```
 
 After this, you can start the bot by running the following:
+
 ```sh
 npm start
 ```
@@ -119,7 +120,7 @@ Examples of settings that can be configured:
   - `bounty-project-board/awaiting-approval-label-name`: Name of the label used in issues to declare that an issue is awaiting approval to become a bounty
   - `bounty-project-board/bounty-label-name`: Name of the label used in issues to declare that an issue is a bounty
   - `bounty-project-board/bounty-size-label-name-regex`: Regular expression that matches the bounty size label and returns a group containing the size itself
-  - `bounty-project-board/post-approved-bounties-to-slack-room`: Name of the Slack room where to cross-post approved bounties 
+  - `bounty-project-board/post-approved-bounties-to-slack-room`: Name of the Slack room where to cross-post approved bounties
 
 - Automated tests settings:
   - `automated-tests/repo-full-name`: Full name of the repo to watch in project cards in order to automatically run automated tests CI job (e.g. `status-im/status-react`)

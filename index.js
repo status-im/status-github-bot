@@ -9,7 +9,7 @@
 // Author:
 //   PombeirP
 
-//const Slack = require('./lib/slack')
+// const Slack = require('./lib/slack')
 const memjs = require('memjs')
 
 module.exports = async (robot) => {
