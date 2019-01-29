@@ -1,0 +1,6 @@
+WAIT=10
+TIMEOUT=30
+ATTEMPTS=3
+
+/ping PONG
+http://status-github-bot.status.im/ping PONG
