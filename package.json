@@ -7,7 +7,8 @@
   "repository": "https://github.com/status-im/status-github-bot.git",
   "scripts": {
     "start": "probot run ./index.js",
-    "test": "jest && standard"
+    "test": "jest && standard",
+    "logs": "ssh dokku.status.im tail -n 100 -f /var/log/docker/status-github-bot.web.1/docker.log"
   },
   "dependencies": {
     "axios": "^0.18.0",
