@@ -8,7 +8,6 @@
   "scripts": {
     "start": "probot run ./index.js",
     "test": "jest && standard",
-
     "logs": "ssh dokku.status.im tail -n 100 -f /var/log/docker/status-github-bot.web.1/docker.log",
     "run-checks": "ssh dokku.status.im dokku checks:run status-github-bot"
   },
@@ -40,7 +39,7 @@
   },
   "engines": {
     "node": ">= 7.7.0",
-    "npm": ">= 4.0.0"
+    "yarn": "1.13.x"
   },
   "standard": {
     "env": [

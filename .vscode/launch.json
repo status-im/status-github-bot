@@ -25,7 +25,7 @@
             "request": "launch",
             "name": "Launch via NPM",
             "cwd": "${workspaceFolder}",
-            "runtimeExecutable": "npm",
+            "runtimeExecutable": "yarn",
             "runtimeArgs": [
                 "start"
             ],

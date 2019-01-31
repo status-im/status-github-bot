@@ -29,7 +29,7 @@ The project board's names, column names, welcome message, and other values are s
 
 To get your environment set up, go through the following steps:
 
-1. Run `npm install`.
+1. Run `yarn install`.
 2. Populate `.env`.
 
    ```sh
@@ -40,7 +40,7 @@ To get your environment set up, go through the following steps:
 After this, you can start the bot by running the following:
 
 ```sh
-npm start
+yarn start
 ```
 
 ## Creating the Slack Bot Integration
