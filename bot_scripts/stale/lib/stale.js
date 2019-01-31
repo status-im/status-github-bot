@@ -146,7 +146,7 @@ module.exports = class Stale {
       if (closeComment) {
         await this.github.issues.createComment({ owner, repo, number, body: closeComment })
       }
-      return this.github.issues.edit({ owner, repo, number, state: 'closed' })
+      return this.github.issues.update({ owner, repo, number, state: 'closed' })
     } else {
       this.logger.info('%s/%s#%d would have been closed (dry-run)', owner, repo, number)
     }

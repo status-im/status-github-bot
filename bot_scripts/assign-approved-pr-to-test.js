@@ -188,7 +188,7 @@ async function assignPullRequestToCorrectColumn (context, robot, repo, pullReque
         robot.log.info(`Would have created card in ${dstColumn.name} column for PR #${prInfo.number}`)
       } else {
         // It wasn't in either the source nor the destination columns, let's create a new card for it in the destination column
-        const ghcardPayload = await github.projects.createProjectCard({
+        const ghcardPayload = await github.projects.createCard({
           column_id: dstColumn.id,
           content_type: 'PullRequest',
           content_id: pullRequest.id

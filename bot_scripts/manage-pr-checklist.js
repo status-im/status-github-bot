@@ -126,7 +126,7 @@ async function getCheckListComment (context) {
     const owner = context.payload.repository.owner.login
     const repo = context.payload.repository.name
     const number = context.payload.pull_request.number
-    const comments = await context.github.paginate(context.github.issues.getComments({ owner, repo, number }), res => res.data)
+    const comments = await context.github.paginate(context.github.issues.listComments({ owner, repo, number }), res => res.data)
     for (const comment of comments) {
       const { found } = checkPRChecklist(comment.body)
       if (found) {

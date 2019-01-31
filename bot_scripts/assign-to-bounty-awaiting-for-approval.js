@@ -80,7 +80,7 @@ async function assignIssueToBountyAwaitingForApproval (context, robot, assign) {
     if (assign) {
       try {
         // Create project card for the issue in the bounty-awaiting-approval column
-        const ghcardPayload = await github.projects.createProjectCard({
+        const ghcardPayload = await github.projects.createCard({
           column_id: column.id,
           content_type: 'Issue',
           content_id: payload.issue.id

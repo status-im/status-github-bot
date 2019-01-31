@@ -70,7 +70,7 @@ async function assignIssueToBountyBug (context, robot, assign) {
     if (assign) {
       try {
         // Create project card for the issue in the bounty-bug column
-        const ghcardPayload = await github.projects.createProjectCard({
+        const ghcardPayload = await github.projects.createCard({
           column_id: column.id,
           content_type: 'Issue',
           content_id: payload.issue.id

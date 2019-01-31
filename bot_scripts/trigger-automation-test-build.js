@@ -65,7 +65,7 @@ async function processChangedProjectCard (robot, context) {
 
   let inTestColumn
   try {
-    const columnPayload = await github.projects.getProjectColumn({ id: payload.project_card.column_id })
+    const columnPayload = await github.projects.getColumn({ column_id: payload.project_card.column_id })
 
     if (columnPayload.data.name !== testColumnName) {
       robot.log.trace(`${botName} - Card column name doesn't match watched column name, exiting`, columnPayload.data.name, testColumnName)
@@ -84,7 +84,7 @@ async function processChangedProjectCard (robot, context) {
 
   try {
     const projectId = last(inTestColumn.project_url.split('/'), -1)
-    const projectPayload = await github.projects.getProject({ id: projectId })
+    const projectPayload = await github.projects.get({ project_id: projectId })
     const project = projectPayload.data
     if (project.name !== projectBoardName) {
       robot.log.trace(`${botName} - Project board name doesn't match watched project board, exiting`, project.name, projectBoardName)

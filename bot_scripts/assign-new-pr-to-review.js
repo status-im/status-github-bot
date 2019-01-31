@@ -55,7 +55,7 @@ async function assignPullRequestToReview (context, robot) {
     if (process.env.DRY_RUN) {
       robot.log.debug(`${botName} - Would have created card`, column.id, payload.pull_request.id)
     } else {
-      const ghcardPayload = await github.projects.createProjectCard({
+      const ghcardPayload = await github.projects.createCard({
         column_id: column.id,
         content_type: 'PullRequest',
         content_id: payload.pull_request.id
