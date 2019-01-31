@@ -4620,10 +4620,9 @@ probot-config@^1.0.0:
     deepmerge "^2.2.1"
     js-yaml "^3.10.0"
 
-probot-scheduler@^1.2.0:
+probot-scheduler@probot/scheduler#75bc5dd3fcac5bf6448ce85c63d1e5c2971c11a8:
   version "1.2.0"
-  resolved "https://registry.yarnpkg.com/probot-scheduler/-/probot-scheduler-1.2.0.tgz#5aba76e589a214934e9db4c39368af592f4dc8b7"
-  integrity sha512-MCIH7erSh+/UppWeArexMh75+8JOPT5j8ykIDSy8CLFyM1DCGhfCLIjTB6b8INEh5eoTNjLmOOK5q/uby2sC1w==
+  resolved "https://codeload.github.com/probot/scheduler/tar.gz/75bc5dd3fcac5bf6448ce85c63d1e5c2971c11a8"
   dependencies:
     bottleneck "^2.0.1"
 
