@@ -5,7 +5,7 @@
 // Dependencies:
 //   github: "^13.1.0"
 //   jenkins: "^0.20.1"
-//   probot-config: "^0.1.0"
+//   probot-config: "^1.0.0"
 //
 // Author:
 //   PombeirP

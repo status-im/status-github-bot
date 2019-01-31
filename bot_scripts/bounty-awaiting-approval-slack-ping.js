@@ -5,7 +5,7 @@
 // Dependencies:
 //   github: "^13.1.0"
 //   hashset: "0.0.6"
-//   probot-config: "^0.1.0"
+//   probot-config: "^1.0.0"
 //
 // Author:
 //   Max Tyrrell (ImFeelingDucky/mac/yung_mac)

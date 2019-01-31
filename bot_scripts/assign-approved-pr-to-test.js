@@ -4,7 +4,7 @@
 //
 // Dependencies:
 //   github: "^13.1.0"
-//   probot-config: "^0.1.0"
+//   probot-config: "^1.0.0"
 //   probot-scheduler: "^1.0.3"
 //
 // Author:
