@@ -36,7 +36,7 @@ async function handleOpenedPullRequest (robot, context) {
 
   await context.github.repos.createStatus(context.repo({
     context: 'Mobile e2e tests',
-    description: 'Tests will run once the PR is moved to the TO TEST column',
+    description: `Tests will run once the PR is moved to the ${automatedTestsConfig['kickoff-column-name']} column`,
     sha: context.payload.pull_request.head.sha,
     state: 'error'
   }))

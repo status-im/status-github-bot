@@ -20,7 +20,7 @@ available, and more!
   - Unfurl links on Issues and Pull Request discussions.
   - Disallow merging of PRs containing WIP in the title.
   - Mention repo collaborators on Slack when a GHI is assigned the `bounty-awaiting-approval` label.
-  - After a PR is moved to the IN TEST column and the build has passed successfully, the bot will kick a test automation build in Jenkins (retry periodically if the PR build is still running).
+  - After a PR is moved to the column specified in `automated-tests/kickoff-column-name` and the build has passed successfully, the bot will kick a test automation build in Jenkins (retry periodically if the PR build is still running).
   - New functionality will be added in the future, and the wishlist is being tracked [here](https://docs.google.com/document/d/19NZEJ453av-owAEBXcIPjavbGKMBFlfVcwsuQ_ORzR4/)).
 
 The project board's names, column names, welcome message, and other values are stored in the `.github/github-bot.yml` file. It can be overriden for each specific repository by adding a file in the same path on the respective repository (see [probot-config](https://github.com/getsentry/probot-config)).
@@ -33,7 +33,8 @@ To get your environment set up, go through the following steps:
 2. Populate `.env`.
 
    ```sh
-   cp .env.example .env
+   cp .env.example .env213804
+   
    # edit .env file to contain proper config
    ```
 
