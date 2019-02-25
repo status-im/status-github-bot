@@ -115,17 +115,22 @@ async function processPullRequest (context, robot, prInfo, fullJobName) {
       robot.log.warn(`${botName} - Could not find PR`, prInfo)
       return
     }
+    if (pullRequest.state === 'closed') {
+      robot.log.info(`${botName} - PR is closed, discarded`, prInfo)
+      return
+    }
 
     const statusContext = 'jenkins/prs/android-e2e'
     const currentStatus = await gitHubHelpers.getPullRequestCurrentStatusForContext(context, statusContext, pullRequest)
 
     switch (currentStatus) {
+      case undefined:
       case 'pending':
+      case 'failure':
         pendingPullRequests.set(prInfo.number, { github: github, prInfo, fullJobName: fullJobName })
         robot.log.debug(`${botName} - Status for ${statusContext} is '${currentStatus}', adding to backlog to check periodically`, prInfo)
         return
       case 'error':
-      case 'failure':
         robot.log.debug(`${botName} - Status for ${statusContext} is '${currentStatus}', exiting`, prInfo)
         return
       case 'success':
