@@ -56,23 +56,23 @@ async function processChangedProjectCard (robot, context) {
   }
 
   const projectBoardName = projectBoardConfig['name']
-  const testColumnName = projectBoardConfig['test-column-name']
+  const kickoffColumnName = automatedTestsConfig['kickoff-column-name']
 
   if (repo.full_name !== automatedTestsConfig['repo-full-name']) {
     robot.log.trace(`${botName} - Pull request project doesn't match watched repo, exiting`, repo.full_name, automatedTestsConfig['repo-full-name'])
     return
   }
 
-  let inTestColumn
+  let targetKickoffColumn
   try {
     const columnPayload = await github.projects.getColumn({ column_id: payload.project_card.column_id })
 
-    if (columnPayload.data.name !== testColumnName) {
-      robot.log.trace(`${botName} - Card column name doesn't match watched column name, exiting`, columnPayload.data.name, testColumnName)
+    if (columnPayload.data.name !== kickoffColumnName) {
+      robot.log.trace(`${botName} - Card column name doesn't match watched column name, exiting`, columnPayload.data.name, kickoffColumnName)
       return
     }
 
-    inTestColumn = columnPayload.data
+    targetKickoffColumn = columnPayload.data
   } catch (error) {
     robot.log.warn(`${botName} - Error while fetching project column`, payload.project_card.column_id, error)
     return
@@ -83,7 +83,7 @@ async function processChangedProjectCard (robot, context) {
   }
 
   try {
-    const projectId = last(inTestColumn.project_url.split('/'), -1)
+    const projectId = last(targetKickoffColumn.project_url.split('/'), -1)
     const projectPayload = await github.projects.get({ project_id: projectId })
     const project = projectPayload.data
     if (project.name !== projectBoardName) {
