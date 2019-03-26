@@ -11,14 +11,18 @@
 //   PombeirP
 
 const getConfig = require('probot-config')
+const createScheduler = require('probot-scheduler')
 const jenkins = require('jenkins')({ baseUrl: process.env.JENKINS_URL, crumbIssuer: true, promisify: true })
 const HashMap = require('hashmap')
+const HashSet = require('hashset')
 
 const defaultConfig = require('../lib/config')
 const gitHubHelpers = require('../lib/github-helpers')
 
 const botName = 'trigger-automation-test-build'
 const pendingPullRequests = new HashMap()
+
+const existingProjectsProcessed = new HashSet()
 
 module.exports = (robot) => {
   if (!process.env.JENKINS_URL) {
@@ -28,23 +32,31 @@ module.exports = (robot) => {
 
   robot.log.info(`${botName} - Starting up`)
 
+  const { stop } = createScheduler(robot, { interval: 1 * 60 * 1000, delay: false })
+  robot.on('schedule.repository', context => processExistingProjectCards(robot, context, stop))
+
   setInterval(checkPendingPullRequests, 5 * 1000 * 60, robot)
   registerForRelevantCardEvents(robot)
 }
 
 function registerForRelevantCardEvents (robot) {
-  robot.on(['project_card.created', 'project_card.moved'], context => processChangedProjectCard(robot, context))
+  robot.on(['project_card.created', 'project_card.moved'], context => processChangedProjectCard(robot, context, undefined))
 }
 
-async function processChangedProjectCard (robot, context) {
-  const { github, payload } = context
-  const repo = payload.repository
-  if (!repo) {
-    robot.log.debug(`${botName} - Repository info is not present in payload, ignoring`)
+const last = (a, index) => {
+  return a[a.length + index]
+}
+
+async function processExistingProjectCards (robot, context, stopScheduler) {
+  stopScheduler(context.payload.repository)
+
+  if (existingProjectsProcessed.contains(context.payload.repository.id)) {
     return
   }
 
-  const repoInfo = context.repo()
+  existingProjectsProcessed.add(context.payload.repository.id)
+
+  const { github } = context
   const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
   const projectBoardConfig = config ? config['project-board'] : null
   const automatedTestsConfig = config ? config['automated-tests'] : null
@@ -52,9 +64,65 @@ async function processChangedProjectCard (robot, context) {
     return
   }
 
-  robot.log.debug(`${botName} - Processing changed project card`, payload.project_card)
+  const repoInfo = context.repo()
+  const projectBoardName = projectBoardConfig['name']
+  const kickoffColumnName = automatedTestsConfig['kickoff-column-name']
 
-  if (payload.project_card.note) {
+  // Find 'Pipeline for QA' project
+  const project = await gitHubHelpers.getRepoProjectByName(github, robot, repoInfo, projectBoardName, botName)
+  if (!project) {
+    robot.log.trace(`${botName} - Project doesn't have the specified project board`, repoInfo, projectBoardName)
+    return
+  }
+
+  const allColumns = await github.paginate(
+    github.projects.listColumns({ project_id: project.id }),
+    res => res.data
+  )
+  const kickoffColumn = allColumns.find(c => c.name === kickoffColumnName)
+  if (!kickoffColumn) {
+    robot.log.debug(`${botName} - Kickoff column not found in project`, kickoffColumnName, allColumns, projectBoardName)
+    return
+  }
+
+  const columnCards = await github.paginate(
+    github.projects.listCards({ column_id: kickoffColumn.id }),
+    res => res.data
+  )
+  robot.log.debug(`${botName} - Fetched ${columnCards.length} cards`, columnCards)
+  for (const { url } of columnCards) {
+    try {
+      const cardId = last(url.split('/'), -1)
+      const { data: card } = await github.projects.getCard({ card_id: cardId })
+      await processChangedProjectCard(robot, context, { ...card, column_id: kickoffColumn.id })
+    } catch (err) {
+      robot.log.error(`${botName} - Unhandled exception while processing card: ${err}`, url)
+    }
+  }
+}
+
+async function processChangedProjectCard (robot, context, card) {
+  const { github, payload } = context
+  const repo = payload.repository
+  const repoInfo = context.repo()
+  if (!repoInfo.repo) {
+    robot.log.debug(`${botName} - Repository info is not present in payload, ignoring`, context)
+    return
+  }
+  if (!card) {
+    card = payload.project_card
+  }
+
+  const config = await getConfig(context, 'github-bot.yml', defaultConfig(robot, '.github/github-bot.yml'))
+  const projectBoardConfig = config ? config['project-board'] : null
+  const automatedTestsConfig = config ? config['automated-tests'] : null
+  if (!projectBoardConfig || !automatedTestsConfig) {
+    return
+  }
+
+  robot.log.debug(`${botName} - Processing changed project card`, card)
+
+  if (card.note) {
     robot.log.trace(`${botName} - Card is a note, ignoring`)
     return
   }
@@ -69,7 +137,7 @@ async function processChangedProjectCard (robot, context) {
 
   let targetKickoffColumn
   try {
-    const columnPayload = await github.projects.getColumn({ column_id: payload.project_card.column_id })
+    const columnPayload = await github.projects.getColumn({ column_id: card.column_id })
 
     if (columnPayload.data.name !== kickoffColumnName) {
       robot.log.trace(`${botName} - Card column name doesn't match watched column name, exiting`, columnPayload.data.name, kickoffColumnName)
@@ -78,12 +146,8 @@ async function processChangedProjectCard (robot, context) {
 
     targetKickoffColumn = columnPayload.data
   } catch (error) {
-    robot.log.warn(`${botName} - Error while fetching project column`, payload.project_card.column_id, error)
+    robot.log.warn(`${botName} - Error while fetching project column`, card.column_id, error)
     return
-  }
-
-  const last = (a, index) => {
-    return a[a.length + index]
   }
 
   try {
@@ -95,11 +159,11 @@ async function processChangedProjectCard (robot, context) {
       return
     }
   } catch (error) {
-    robot.log.warn(`${botName} - Error while fetching project column`, payload.project_card.column_id, error)
+    robot.log.warn(`${botName} - Error while fetching project column`, card.column_id, error)
     return
   }
 
-  const prNumber = last(payload.project_card.content_url.split('/'), -1)
+  const prNumber = last(card.content_url.split('/'), -1)
   const fullJobName = automatedTestsConfig['job-full-name']
 
   await processPullRequest(context, robot, { ...repoInfo, number: prNumber }, fullJobName)
@@ -110,6 +174,7 @@ async function processPullRequest (context, robot, prInfo, fullJobName) {
 
   // Remove the PR from the pending PR list, if it is there
   pendingPullRequests.delete(prInfo.number)
+  robot.log.debug(`${botName} - Removed PR #${prInfo.number} from queue, current queue length is ${pendingPullRequests.size}`)
 
   try {
     // Get detailed pull request
@@ -131,8 +196,8 @@ async function processPullRequest (context, robot, prInfo, fullJobName) {
       case undefined:
       case 'pending':
       case 'failure':
-        pendingPullRequests.set(prInfo.number, { github: github, prInfo, fullJobName: fullJobName })
-        robot.log.debug(`${botName} - Status for ${statusContext} is '${currentStatus}', adding to backlog to check periodically`, prInfo)
+        pendingPullRequests.set(prInfo.number, { context: context, prInfo, fullJobName: fullJobName })
+        robot.log.debug(`${botName} - Status for ${statusContext} is '${currentStatus}', adding to backlog to check periodically, current queue length is ${pendingPullRequests.size}`, prInfo)
         return
       case 'error':
         robot.log.debug(`${botName} - Status for ${statusContext} is '${currentStatus}', exiting`, prInfo)
@@ -160,9 +225,8 @@ async function processPullRequest (context, robot, prInfo, fullJobName) {
       robot.log(`${botName} - Started job in Jenkins`, prInfo, buildId)
     }
   } catch (error) {
-    robot.log.error(`${botName} - Error while triggering Jenkins build. Will retry later`, prInfo, error)
-
-    pendingPullRequests.set(prInfo.number, { github: github, prInfo: prInfo, fullJobName: fullJobName })
+    pendingPullRequests.set(prInfo.number, { context: context, prInfo: prInfo, fullJobName: fullJobName })
+    robot.log.error(`${botName} - Error while triggering Jenkins build. Will retry later, current queue length is ${pendingPullRequests.size}`, prInfo, error)
   }
 }
 
@@ -171,8 +235,8 @@ async function checkPendingPullRequests (robot) {
 
   robot.log.debug(`${botName} - Processing ${_pendingPullRequests.size} pending PRs`)
 
-  for (const { github, prInfo, fullJobName } of _pendingPullRequests.values()) {
-    await processPullRequest(github, robot, prInfo, fullJobName)
+  for (const { context, prInfo, fullJobName } of _pendingPullRequests.values()) {
+    await processPullRequest(context, robot, prInfo, fullJobName)
   }
 
   robot.log.debug(`${botName} - Finished processing ${_pendingPullRequests.size} pending PRs`)
