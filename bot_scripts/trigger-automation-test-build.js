@@ -26,6 +26,8 @@ module.exports = (robot) => {
     return
   }
 
+  robot.log.info(`${botName} - Starting up`)
+
   setInterval(checkPendingPullRequests, 5 * 1000 * 60, robot)
   registerForRelevantCardEvents(robot)
 }
@@ -49,6 +51,8 @@ async function processChangedProjectCard (robot, context) {
   if (!projectBoardConfig || !automatedTestsConfig) {
     return
   }
+
+  robot.log.debug(`${botName} - Processing changed project card`, payload.project_card)
 
   if (payload.project_card.note) {
     robot.log.trace(`${botName} - Card is a note, ignoring`)
@@ -165,11 +169,11 @@ async function processPullRequest (context, robot, prInfo, fullJobName) {
 async function checkPendingPullRequests (robot) {
   const _pendingPullRequests = pendingPullRequests.clone()
 
-  robot.log.trace(`${botName} - Processing ${_pendingPullRequests.size} pending PRs`)
+  robot.log.debug(`${botName} - Processing ${_pendingPullRequests.size} pending PRs`)
 
   for (const { github, prInfo, fullJobName } of _pendingPullRequests.values()) {
     await processPullRequest(github, robot, prInfo, fullJobName)
   }
 
-  robot.log.trace(`${botName} - Finished processing ${_pendingPullRequests.size} pending PRs`)
+  robot.log.debug(`${botName} - Finished processing ${_pendingPullRequests.size} pending PRs`)
 }
