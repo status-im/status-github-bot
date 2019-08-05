@@ -57,6 +57,7 @@ async function checkOpenPullRequests (robot, context) {
   const contributorColumnName = projectBoardConfig['contributor-column-name']
   const reviewColumnName = projectBoardConfig['review-column-name']
   const testColumnName = projectBoardConfig['test-column-name']
+  const minReviewers = projectBoardConfig['min-reviewers'] || 1
 
   // Find 'Pipeline for QA' project
   const project = await gitHubHelpers.getRepoProjectByName(github, robot, repoInfo, projectBoardConfig.name, botName)
@@ -92,7 +93,7 @@ async function checkOpenPullRequests (robot, context) {
       // And make sure they are assigned to the correct project column
       for (const pullRequest of allPullRequests) {
         try {
-          await assignPullRequestToCorrectColumn(context, robot, repo, pullRequest, testedPullRequestLabelName, columns, config.slack.notification.room)
+          await assignPullRequestToCorrectColumn(context, robot, repo, pullRequest, minReviewers, testedPullRequestLabelName, columns, config.slack.notification.room)
         } catch (err) {
           robot.log.error(`${botName} - Unhandled exception while processing PR: ${err}`, repoInfo)
         }
@@ -105,7 +106,7 @@ async function checkOpenPullRequests (robot, context) {
   }
 }
 
-async function assignPullRequestToCorrectColumn (context, robot, repo, pullRequest, testedPullRequestLabelName, columns, room) {
+async function assignPullRequestToCorrectColumn (context, robot, repo, pullRequest, minReviewers, testedPullRequestLabelName, columns, room) {
   const { github } = context
   const prInfo = { owner: repo.owner.login, repo: repo.name, number: pullRequest.number }
 
@@ -116,7 +117,7 @@ async function assignPullRequestToCorrectColumn (context, robot, repo, pullReque
                                    status.creator &&
                                    (status.creator.login === 'status-github-bot[bot]' || status.creator.login === 'e2e-tests-check-bot[bot]'))
 
-    state = await gitHubHelpers.getReviewApprovalState(context, robot, prInfo, testedPullRequestLabelName, filterFn)
+    state = await gitHubHelpers.getReviewApprovalState(context, robot, prInfo, minReviewers, testedPullRequestLabelName, filterFn)
   } catch (err) {
     robot.log.error(`${botName} - Couldn't calculate the PR approval state: ${err}`, prInfo)
   }
