@@ -55,6 +55,7 @@ async function checkOpenPullRequests (robot, context) {
 
   const testedPullRequestLabelName = projectBoardConfig['tested-pr-label-name']
   const contributorColumnName = projectBoardConfig['contributor-column-name']
+  const toRebaseColumnName = projectBoardConfig['to-rebase-column-name']
   const reviewColumnName = projectBoardConfig['review-column-name']
   const testColumnName = projectBoardConfig['test-column-name']
   const minReviewers = projectBoardConfig['min-reviewers'] || 1
@@ -76,12 +77,20 @@ async function checkOpenPullRequests (robot, context) {
   }
 
   try {
-    const contributorColumn = findColumnByName(ghcolumns, contributorColumnName)
-    const reviewColumn = findColumnByName(ghcolumns, reviewColumnName)
-    const testColumn = findColumnByName(ghcolumns, testColumnName)
-    const columns = { contributor: contributorColumn, review: reviewColumn, test: testColumn }
+    const columns = {
+      contributor: findColumnByName(ghcolumns, contributorColumnName),
+      rebase:      findColumnByName(ghcolumns, toRebaseColumnName),
+      review:      findColumnByName(ghcolumns, reviewColumnName),
+      test:        findColumnByName(ghcolumns, testColumnName),
+    }
 
-    robot.log.debug(`${botName} - Fetched ${contributorColumn.name} (${contributorColumn.id}), ${reviewColumn.name} (${reviewColumn.id}), ${testColumn.name} (${testColumn.id}) columns`)
+    robot.log.debug(`
+      ${botName} - Fetched columns:
+      ${columns.contributor.name} (${columns.contributor.id})
+      ${columns.rebase.name} (${columns.rebase.id})
+      ${columns.review.name} (${columns.review.id})
+      ${columns.test.name} (${columns.test.id})
+    `)
 
     try {
       // Gather all open PRs in this repo
@@ -210,8 +219,8 @@ function getColumns (state, columns) {
       return { srcColumns: [columns.contributor, columns.test], dstColumn: columns.review }
     case 'changes_requested':
       return { srcColumns: [columns.review, columns.test], dstColumn: columns.contributor }
-    case 'failed':
-      return { srcColumns: [columns.review, columns.test], dstColumn: columns.contributor }
+    case 'needs_rebase':
+      return { srcColumns: [columns.contributor, columns.review, columns.test], dstColumn: columns.rebase }
     case 'approved':
       return { srcColumns: [columns.contributor, columns.review], dstColumn: columns.test }
     default:
