@@ -54,7 +54,7 @@ async function greetNewContributor (context, robot) {
   robot.log(`${botName} - Handling Pull Request #${prInfo.number} on repo ${repoInfo.owner}/${repoInfo.repo}`)
 
   try {
-    const ghissuesPayload = await github.issues.getForRepo({
+    const ghissuesPayload = await github.issues.listForRepo({
       ...repoInfo,
       state: 'all',
       creator: payload.pull_request.user.login
