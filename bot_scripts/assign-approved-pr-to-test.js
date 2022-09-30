@@ -100,9 +100,9 @@ async function checkOpenPullRequests (robot, context) {
       )
 
       // And make sure they are assigned to the correct project column
-      for (const pullRequest of allPullRequests) {
+      for (const pr of allPullRequests) {
         try {
-          await assignPullRequestToCorrectColumn(context, robot, repo, pullRequest, minReviewers, testedPullRequestLabelName, columns, config.slack.notification.room)
+          await assignPullRequestToCorrectColumn(context, robot, repo, pr, minReviewers, testedPullRequestLabelName, columns, config.slack.notification.room)
         } catch (err) {
           robot.log.error(`${botName} - Unhandled exception while processing PR: ${err}`, repoInfo)
         }
@@ -115,9 +115,9 @@ async function checkOpenPullRequests (robot, context) {
   }
 }
 
-async function assignPullRequestToCorrectColumn (context, robot, repo, pullRequest, minReviewers, testedPullRequestLabelName, columns, room) {
+async function assignPullRequestToCorrectColumn (context, robot, repo, pr, minReviewers, testedPullRequestLabelName, columns, room) {
   const { github } = context
-  const prInfo = { owner: repo.owner.login, repo: repo.name, number: pullRequest.number }
+  const prInfo = { owner: repo.owner.login, repo: repo.name, number: pr.number }
 
   let state = null
   try {
@@ -133,24 +133,24 @@ async function assignPullRequestToCorrectColumn (context, robot, repo, pullReque
 
   const { srcColumns, dstColumn } = getColumns(state, columns)
   if (!dstColumn) {
-    robot.log.debug(`${botName} - No dstColumn, state=${state}, columns=${JSON.stringify(columns)}, srcColumns=${srcColumns}`)
+    robot.log.debug(`${botName} - PR #${prInfo.number} - No dstColumn, state=${state}, columns=${JSON.stringify(columns)}, srcColumns=${srcColumns}`)
     return
   }
 
-  robot.log.debug(`${botName} - Handling Pull Request #${prInfo.number} on repo ${prInfo.owner}/${prInfo.repo}. PR should be in ${dstColumn.name} column`)
+  robot.log.debug(`${botName} - PR #${prInfo.number} - Handling Pull Request on repo ${prInfo.owner}/${prInfo.repo}. PR should be in ${dstColumn.name} column`)
 
   // Look for PR card in source column(s)
   let existingGHCard = null
   let srcColumn = null
   for (const c of srcColumns) {
     try {
-      existingGHCard = await gitHubHelpers.getProjectCardForIssue(github, c.id, pullRequest.issue_url)
+      existingGHCard = await gitHubHelpers.getProjectCardForIssue(github, c.id, pr.issue_url)
       if (existingGHCard) {
         srcColumn = c
         break
       }
     } catch (err) {
-      robot.log.error(`${botName} - Failed to retrieve project card for the PR, aborting: ${err}`, c.id, pullRequest.issue_url)
+      robot.log.error(`${botName} - PR #${prInfo.number} - Failed to retrieve project card for the PR, aborting: ${err}`, c.id, pr.issue_url)
       return
     }
   }
@@ -158,25 +158,25 @@ async function assignPullRequestToCorrectColumn (context, robot, repo, pullReque
   if (existingGHCard) {
     // Move PR card to the destination column
     try {
-      robot.log.trace(`${botName} - Found card in source column ${srcColumn.name}`, existingGHCard.id, srcColumn.id)
+      robot.log.trace(`${botName} - PR #${prInfo.number} - Found card in source column ${srcColumn.name}`, existingGHCard.id, srcColumn.id)
 
       if (dstColumn === srcColumn) {
         return
       }
 
       if (process.env.DRY_RUN || process.env.DRY_RUN_PR_TO_TEST) {
-        robot.log.info(`${botName} - Would have moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prInfo.number}`)
+        robot.log.info(`${botName} - PR #${prInfo.number} - Would have moved card ${existingGHCard.id} to ${dstColumn.name}`)
       } else {
         // Found in the source column, let's move it to the destination column
         await github.projects.moveCard({card_id: existingGHCard.id, position: 'bottom', column_id: dstColumn.id})
 
-        robot.log.info(`${botName} - Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prInfo.number}`)
+        robot.log.info(`${botName} - PR #${prInfo.number} - Moved card ${existingGHCard.id} to ${dstColumn.name}`)
       }
 
-      // slackHelper.sendMessage(robot, room, `Assigned PR to ${dstColumn.name} column\n${pullRequest.html_url}`)
+      // slackHelper.sendMessage(robot, room, `Assigned PR to ${dstColumn.name} column\n${pr.html_url}`)
     } catch (err) {
-      robot.log.error(`${botName} - Couldn't move project card for the PR: ${err}`, srcColumn.id, dstColumn.id, pullRequest.id)
-      // slackHelper.sendMessage(robot, room, `I couldn't move the PR to ${dstColumn.name} column :confused:\n${pullRequest.html_url}`)
+      robot.log.error(`${botName} - Couldn't move project card for the PR #${err}`, srcColumn.id, dstColumn.id, pr.id)
+      // slackHelper.sendMessage(robot, room, `I couldn't move the PR to ${dstColumn.name} column :confused:\n${pr.html_url}`)
     }
   } else {
     try {
@@ -184,13 +184,13 @@ async function assignPullRequestToCorrectColumn (context, robot, repo, pullReque
 
       // Look for PR card in destination column
       try {
-        const existingGHCard = await gitHubHelpers.getProjectCardForIssue(github, dstColumn.id, pullRequest.issue_url)
+        const existingGHCard = await gitHubHelpers.getProjectCardForIssue(github, dstColumn.id, pr.issue_url)
         if (existingGHCard) {
           robot.log.trace(`${botName} - Found card in target column, ignoring`, existingGHCard.id, dstColumn.id)
           return
         }
       } catch (err) {
-        robot.log.error(`${botName} - Failed to retrieve project card for the PR, aborting: ${err}`, dstColumn.id, pullRequest.issue_url)
+        robot.log.error(`${botName} - Failed to retrieve project card for the PR, aborting: ${err}`, dstColumn.id, pr.issue_url)
         return
       }
 
@@ -201,14 +201,14 @@ async function assignPullRequestToCorrectColumn (context, robot, repo, pullReque
         const ghcardPayload = await github.projects.createCard({
           column_id: dstColumn.id,
           content_type: 'PullRequest',
-          content_id: pullRequest.id
+          content_id: pr.id
         })
 
         robot.log.info(`${botName} - Created card ${ghcardPayload.data.id} in ${dstColumn.name} for PR #${prInfo.number}`)
       }
     } catch (err) {
       // We normally arrive here because there is already a card for the PR in another column
-      robot.log.debug(`${botName} - Couldn't create project card for the PR: ${err}`, dstColumn.id, pullRequest.id)
+      robot.log.debug(`${botName} - Couldn't create project card for the PR #${err}`, dstColumn.id, pr.id)
     }
   }
 }
