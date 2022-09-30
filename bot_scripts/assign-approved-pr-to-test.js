@@ -159,7 +159,7 @@ async function assignPullRequestToCorrectColumn (context, robot, repo, pullReque
         robot.log.info(`${botName} - Would have moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prInfo.number}`)
       } else {
         // Found in the source column, let's move it to the destination column
-        await github.projects.moveProjectCard({id: existingGHCard.id, position: 'bottom', column_id: dstColumn.id})
+        await github.projects.moveCard({card_id: existingGHCard.id, position: 'bottom', column_id: dstColumn.id})
 
         robot.log.info(`${botName} - Moved card ${existingGHCard.id} to ${dstColumn.name} for PR #${prInfo.number}`)
       }
