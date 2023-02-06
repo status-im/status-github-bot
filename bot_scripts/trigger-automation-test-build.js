@@ -215,7 +215,7 @@ async function processPullRequest (context, robot, prInfo, fullJobName) {
   }
 
   try {
-    const args = { parameters: { PR_ID: prInfo.number, APK_NAME: `${prInfo.number}.apk` } }
+    const args = { parameters: { PR_ID: prInfo.number } }
 
     if (process.env.DRY_RUN) {
       robot.log(`${botName} - Would start ${fullJobName} job in Jenkins`, prInfo, args)
