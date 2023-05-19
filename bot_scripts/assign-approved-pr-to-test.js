@@ -55,7 +55,6 @@ async function checkOpenPullRequests (robot, context) {
 
   const testedPullRequestLabelName = projectBoardConfig['tested-pr-label-name']
   const contributorColumnName = projectBoardConfig['contributor-column-name']
-  const toRebaseColumnName = projectBoardConfig['to-rebase-column-name']
   const reviewColumnName = projectBoardConfig['review-column-name']
   const testColumnName = projectBoardConfig['test-column-name']
   const minReviewers = projectBoardConfig['min-reviewers'] || 1
@@ -79,7 +78,6 @@ async function checkOpenPullRequests (robot, context) {
   try {
     const columns = {
       contributor: findColumnByName(ghcolumns, contributorColumnName),
-      rebase:      findColumnByName(ghcolumns, toRebaseColumnName),
       review:      findColumnByName(ghcolumns, reviewColumnName),
       test:        findColumnByName(ghcolumns, testColumnName),
     }
@@ -219,8 +217,6 @@ function getColumns (state, columns) {
       return { srcColumns: [columns.contributor, columns.test], dstColumn: columns.review }
     case 'changes_requested':
       return { srcColumns: [columns.review, columns.test], dstColumn: columns.contributor }
-    case 'needs_rebase':
-      return { srcColumns: [columns.contributor, columns.review, columns.test], dstColumn: columns.rebase }
     case 'approved':
       return { srcColumns: [columns.contributor, columns.review], dstColumn: columns.test }
     default:
